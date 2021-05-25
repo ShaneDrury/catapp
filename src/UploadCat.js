@@ -1,12 +1,16 @@
 import React from "react";
 import { apiFromKey } from "./catsApi";
 
+import { useHistory } from "react-router-dom";
+
 const api = apiFromKey();
 
 const UploadCat = () => {
-  const handleInputChange = (event) => {
+  const history = useHistory();
+  const handleInputChange = async (event) => {
     const file = event.target.files[0];
-    return api.newCat(file);
+    await api.newCat(file);
+    history.push("/");
   };
   return (
     <div>

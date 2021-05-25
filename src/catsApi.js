@@ -6,7 +6,7 @@ export class CatsApi {
   }
 
   uploaded = () => {
-    return this._makeApiRequest("images/");
+    return this._makeApiRequest("images/?limit=100");
   };
 
   newCat = (catData) => {
@@ -47,10 +47,6 @@ export class CatsApi {
       image_id: catId,
       value: 0,
     });
-  };
-
-  vvoteDown = (favouriteId) => {
-    return this._makeApiRequest(`favourites/${favouriteId}`, "DELETE");
   };
 
   _makeApiRequest(url, method = "GET", body = undefined) {
