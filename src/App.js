@@ -1,4 +1,4 @@
-import './App.css';
+import "./App.css";
 import Uploaded from "./Uploaded";
 import UploadCat from "./UploadCat";
 
@@ -7,6 +7,6 @@ const App = () => (
     <UploadCat />
     <Uploaded />
   </div>
-)
+);
 
 export default App;
