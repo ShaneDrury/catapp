@@ -1,7 +1,8 @@
-import { apiFromKey, Cat as ICat, Favourite, Vote } from "./catsApi";
+import { apiFromKey } from "./catsApi";
 import Cat from "./Cat";
 import { groupBy } from "lodash";
 import React from "react";
+import { Favourite, Vote, Cat as ICat } from "./types";
 
 const api = apiFromKey();
 

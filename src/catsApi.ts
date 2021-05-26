@@ -1,23 +1,10 @@
+import { Cat, Favourite, Vote } from "./types";
+
 interface ApiRequest {
   url: string;
   method?: string;
   body?: {};
   queryParams?: {};
-}
-
-export interface Favourite {
-  id: string;
-  image_id: string;
-}
-
-export interface Vote {
-  value: number;
-  image_id: string;
-}
-
-export interface Cat {
-  id: string;
-  url: string;
 }
 
 export class CatsApi {
@@ -93,17 +80,21 @@ export class CatsApi {
     body,
     queryParams = {},
   }: ApiRequest): Promise<unknown> => {
+    const jsonBody = JSON.stringify(body);
     let items: unknown[] = [];
     let page = 0;
 
     while (true) {
-      const response = await apiRequest(
-        `${this.BASE_URL}/${url}`,
+      const response = await runRequest({
+        url: `${this.BASE_URL}/${url}`,
         method,
-        this.apiKey,
-        body,
-        { ...queryParams, page: page.toString() }
-      );
+        body: jsonBody,
+        queryParams: { ...queryParams, page: page.toString() },
+        headers: {
+          "x-api-key": this.apiKey,
+          "Content-type": "application/json",
+        },
+      });
       const totalCount = parseInt(
         response.headers.get("pagination-count") || "0",
         10
@@ -120,7 +111,12 @@ export class CatsApi {
   };
 
   _makeRequest = (url: string, method = "GET", body?: FormData) => {
-    return uploadRequest(`${this.BASE_URL}/${url}`, method, this.apiKey, body);
+    return runRequest({
+      url: `${this.BASE_URL}/${url}`,
+      method,
+      headers: { "x-api-key": this.apiKey },
+      body,
+    });
   };
 }
 
@@ -131,13 +127,21 @@ export const apiFromKey = () => {
   return new CatsApi(apiKey || "test-api-key");
 };
 
-const apiRequest = async (
-  url: string,
+interface Request {
+  url: string;
+  method?: string;
+  body?: BodyInit;
+  queryParams?: { [key: string]: string };
+  headers?: { [key: string]: string };
+}
+
+const runRequest = async ({
+  url,
   method = "GET",
-  apiKey: string,
-  body?: {},
-  queryParams: { [key: string]: string } = {}
-) => {
+  body,
+  queryParams = {},
+  headers,
+}: Request) => {
   const searchParams = new URLSearchParams();
   Object.entries(queryParams).forEach(([key, value]) => {
     searchParams.append(key, value);
@@ -145,31 +149,12 @@ const apiRequest = async (
 
   const request: RequestInit = {
     method,
-    headers: {
-      "x-api-key": apiKey,
-      "Content-type": "application/json",
-    },
+    headers,
   };
   if (body) {
-    request.body = JSON.stringify(body);
+    request.body = body;
   }
   const response = await fetch(`${url}?${searchParams.toString()}`, request);
   const json = await response.json();
   return { json, headers: response.headers };
-};
-
-const uploadRequest = async (
-  url: string,
-  method = "GET",
-  apiKey: string,
-  body?: FormData
-) => {
-  const response = await fetch(url, {
-    method,
-    body,
-    headers: {
-      "x-api-key": apiKey,
-    },
-  });
-  return response.json();
 };

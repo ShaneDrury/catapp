@@ -1,5 +1,6 @@
 import React from "react";
-import { apiFromKey, Favourite, Vote } from "./catsApi";
+import { apiFromKey } from "./catsApi";
+import { Favourite, Vote } from "./types";
 
 const api = apiFromKey();
 
