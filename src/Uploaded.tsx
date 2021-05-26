@@ -8,17 +8,18 @@ const Uploaded = () => {
   const [loadingVotes, votes, fetchVotes] = useVotes();
 
   return (
-    <div>
+    <div className="columns is-multiline">
       {cats.map((cat) => (
-        <Cat
-          key={cat.id}
-          {...cat}
-          loading={catsLoading || loadingVotes || loadingFavourites}
-          favourite={favourites[cat.id]}
-          votes={votes[cat.id]}
-          onVoteChange={fetchVotes}
-          onFavouriteChange={fetchFavourites}
-        />
+        <div key={cat.id} className="column is-one-quarter">
+          <Cat
+            {...cat}
+            loading={catsLoading || loadingVotes || loadingFavourites}
+            favourite={favourites[cat.id]}
+            votes={votes[cat.id]}
+            onVoteChange={fetchVotes}
+            onFavouriteChange={fetchFavourites}
+          />
+        </div>
       ))}
     </div>
   );

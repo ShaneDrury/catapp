@@ -1,8 +1,21 @@
 import React from "react";
 import { apiFromKey } from "./catsApi";
 import { Favourite, Vote } from "./types";
+import {
+  faArrowDown,
+  faArrowUp,
+  faHeart,
+} from "@fortawesome/free-solid-svg-icons";
+import { faHeart as faHeartRegular } from "@fortawesome/free-regular-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import styled from "styled-components";
 
 const api = apiFromKey();
+
+const CardSpacer = styled.div`
+  display: flex;
+  justify-content: space-between;
+`;
 
 interface CatProps {
   id: string;
@@ -24,6 +37,9 @@ const Cat = ({
   loading,
 }: CatProps) => {
   const handleToggleFavourite = async () => {
+    if (loading) {
+      return;
+    }
     if (favourite) {
       await api.unfavouriteCat(favourite.id);
     } else {
@@ -47,18 +63,48 @@ const Cat = ({
     .reduce((a, b) => a + b, 0);
 
   return (
-    <div>
-      <img src={url} alt="cat" width="25%" />
-      <button disabled={loading} onClick={handleToggleFavourite}>
-        {favourite ? "unfavourite" : "favourite"}
-      </button>
-      {score}
-      <button disabled={loading} onClick={handleVoteUp}>
-        Vote up
-      </button>
-      <button disabled={loading} onClick={handleVoteDown}>
-        Vote down
-      </button>
+    <div className="card">
+      <div className="card-image">
+        <figure className="image is-4by3">
+          <img src={url} alt="cat" width="25%" />
+        </figure>
+      </div>
+      <div className="card-content">
+        <div className="content">
+          <CardSpacer>
+            <div>Score: {score}</div>
+            <span className="icon is-clickable">
+              <FontAwesomeIcon
+                icon={favourite ? faHeart : faHeartRegular}
+                color="red"
+                onClick={handleToggleFavourite}
+              />
+            </span>
+          </CardSpacer>
+          <CardSpacer className="buttons">
+            <button
+              className="button"
+              disabled={loading}
+              onClick={handleVoteUp}
+            >
+              <span className="icon">
+                <FontAwesomeIcon icon={faArrowUp} />
+              </span>
+              <span>Vote up</span>
+            </button>
+            <button
+              className="button"
+              disabled={loading}
+              onClick={handleVoteDown}
+            >
+              <span className="icon">
+                <FontAwesomeIcon icon={faArrowDown} />
+              </span>
+              <span>Vote down</span>
+            </button>
+          </CardSpacer>
+        </div>
+      </div>
     </div>
   );
 };

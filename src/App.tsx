@@ -1,11 +1,10 @@
-import "./App.css";
 import Uploaded from "./Uploaded";
 import UploadCat from "./UploadCat";
 
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 
 const App = () => (
-  <div className="App">
+  <main className="container">
     <Router>
       <Switch>
         <Route path="/upload">
@@ -16,7 +15,7 @@ const App = () => (
         </Route>
       </Switch>
     </Router>
-  </div>
+  </main>
 );
 
 export default App;
