@@ -1,4 +1,5 @@
 import { Cat, Favourite, Vote } from "./types";
+import { runRequest } from "./request";
 
 interface ApiRequest {
   url: string;
@@ -125,36 +126,4 @@ export const apiFromKey = () => {
 
   const apiKey = catsDataEl && catsDataEl.dataset.key;
   return new CatsApi(apiKey || "test-api-key");
-};
-
-interface Request {
-  url: string;
-  method?: string;
-  body?: BodyInit;
-  queryParams?: { [key: string]: string };
-  headers?: { [key: string]: string };
-}
-
-const runRequest = async ({
-  url,
-  method = "GET",
-  body,
-  queryParams = {},
-  headers,
-}: Request) => {
-  const searchParams = new URLSearchParams();
-  Object.entries(queryParams).forEach(([key, value]) => {
-    searchParams.append(key, value);
-  });
-
-  const request: RequestInit = {
-    method,
-    headers,
-  };
-  if (body) {
-    request.body = body;
-  }
-  const response = await fetch(`${url}?${searchParams.toString()}`, request);
-  const json = await response.json();
-  return { json, headers: response.headers };
 };
