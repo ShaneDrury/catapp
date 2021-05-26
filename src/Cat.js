@@ -4,65 +4,46 @@ import { apiFromKey } from "./catsApi";
 const api = apiFromKey();
 
 const Cat = ({
-  breeds,
   id,
   url,
-  width,
-  height,
-  sub_id,
-  created_at,
-  original_filename,
-  breed_ids,
   favourite,
-  votes,
+  votes = [],
+  onVoteChange,
+  onFavouriteChange,
+  loading,
 }) => {
-  const handleDelete = () => {
-    return api.deleteCat(id);
-  };
-
-  const handleToggleFavourite = () => {
+  const handleToggleFavourite = async () => {
     if (favourite) {
-      return api.unfavouriteCat(favourite.id);
+      await api.unfavouriteCat(favourite.id);
     } else {
-      return api.favouriteCat(id);
+      await api.favouriteCat(id);
     }
+    onFavouriteChange();
   };
 
-  const handleVoteUp = () => {
-    return api.voteUp(id);
+  const handleVoteUp = async () => {
+    await api.voteUp(id);
+    onVoteChange();
   };
 
-  const handleVoteDown = () => {
-    return api.voteDown(id);
+  const handleVoteDown = async () => {
+    await api.voteDown(id);
+    onVoteChange();
   };
 
   return (
     <div>
       <img src={url} alt="cat" width="25%" />
-      {breeds}
-      <br />
-      {id}
-      <br />
-      {url}
-      <br />
-      {width}
-      <br />
-      {height}
-      <br />
-      {sub_id}
-      <br />
-      {created_at}
-      <br />
-      {original_filename}
-      <br />
-      {breed_ids} <br />
-      <button onClick={handleDelete}>Delete</button>
-      <button onClick={handleToggleFavourite}>
+      <button disabled={loading} onClick={handleToggleFavourite}>
         {favourite ? "unfavourite" : "favourite"}
       </button>
       {votes.map((vote) => 2 * vote.value - 1).reduce((a, b) => a + b, 0)}
-      <button onClick={handleVoteUp}>Vote up</button>
-      <button onClick={handleVoteDown}>Vote down</button>
+      <button disabled={loading} onClick={handleVoteUp}>
+        Vote up
+      </button>
+      <button disabled={loading} onClick={handleVoteDown}>
+        Vote down
+      </button>
     </div>
   );
 };

@@ -1,42 +1,65 @@
 import React from "react";
 import { apiFromKey } from "./catsApi";
 import Cat from "./Cat";
+import { groupBy } from "lodash";
 
 const api = apiFromKey();
 
 const Uploaded = () => {
-  const [uploaded, setUploaded] = React.useState([]);
-  const [favourites, setFavourites] = React.useState([]);
-  const [votes, setVotes] = React.useState([]);
+  const [catIds, setCatIds] = React.useState([]);
+  const [catData, setCatData] = React.useState({});
+  const [favourites, setFavourites] = React.useState({});
+  const [votes, setVotes] = React.useState({});
+
+  const getVotes = async () => {
+    const votes = await api.votes();
+    return setVotes(groupBy(votes, (vote) => vote.image_id));
+  };
+
+  const getCats = async () => {
+    const cats = await api.uploaded();
+    setCatIds(cats.map((cat) => cat.id));
+    setCatData(cats.reduce((acc, cat) => ({ ...acc, [cat.id]: cat }), {}));
+  };
+
+  const getFavourites = async () => {
+    const favourites = await api.favourites();
+    return setFavourites(
+      favourites.reduce(
+        (acc, favourite) => ({ ...acc, [favourite.image_id]: favourite }),
+        {}
+      )
+    );
+  };
 
   React.useEffect(() => {
-    const getUploaded = async () => {
-      const uploaded = await api.uploaded();
-      return setUploaded(uploaded);
-    };
-    const getFavourites = async () => {
-      const favourites = await api.favourites();
-      return setFavourites(favourites);
-    };
-    const getVotes = async () => {
-      const votes = await api.votes();
-      return setVotes(votes.reverse());
-    };
-    getUploaded();
+    getCats();
     getFavourites();
     getVotes();
   }, []);
 
+  const handleVoteChange = async (id) => {
+    setCatData({ ...catData, [id]: { ...catData[id], loading: true } });
+    await getVotes();
+    setCatData({ ...catData, [id]: { ...catData[id], loading: false } });
+  };
+
+  const handleFavouriteChange = async (id) => {
+    setCatData({ ...catData, [id]: { ...catData[id], loading: true } });
+    await getFavourites();
+    setCatData({ ...catData, [id]: { ...catData[id], loading: false } });
+  };
+
   return (
     <div>
-      {uploaded.map((catProps) => (
+      {catIds.map((id) => (
         <Cat
-          key={catProps.id}
-          {...catProps}
-          favourite={favourites.find(
-            (favourite) => favourite.image_id === catProps.id
-          )}
-          votes={votes.filter((vote) => vote.image_id === catProps.id)}
+          key={id}
+          {...catData[id]}
+          favourite={favourites[id]}
+          votes={votes[id]}
+          onVoteChange={() => handleVoteChange(id)}
+          onFavouriteChange={() => handleFavouriteChange(id)}
         />
       ))}
     </div>
