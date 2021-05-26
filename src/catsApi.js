@@ -6,7 +6,10 @@ export class CatsApi {
   }
 
   uploaded = () => {
-    return this._makeApiRequest("images/?limit=100");
+    return this._makeApiRequest({
+      url: "images/",
+      queryParams: { limit: 100 },
+    });
   };
 
   newCat = (catData) => {
@@ -15,47 +18,83 @@ export class CatsApi {
     return this._makeRequest("images/upload", "POST", catPicture);
   };
 
-  deleteCat = (catId) => {
-    return this._makeApiRequest(`images/${catId}`, "DELETE");
-  };
-
   favourites = () => {
-    return this._makeApiRequest("favourites/");
+    return this._makeApiRequest({ url: "favourites" });
   };
 
   favouriteCat = (catId) => {
-    return this._makeApiRequest("favourites/", "POST", { image_id: catId });
+    return this._makeApiRequest({
+      url: "favourites",
+      method: "POST",
+      body: { image_id: catId },
+    });
   };
 
   unfavouriteCat = (favouriteId) => {
-    return this._makeApiRequest(`favourites/${favouriteId}`, "DELETE");
+    return this._makeApiRequest({
+      url: `favourites/${favouriteId}`,
+      method: "DELETE",
+    });
   };
 
   votes = () => {
-    return this._makeApiRequest("votes/");
+    return this._makeApiRequest({ url: "votes" });
   };
 
   voteUp = (catId) => {
-    return this._makeApiRequest("votes/", "POST", {
-      image_id: catId,
-      value: 1,
+    return this._makeApiRequest({
+      url: "votes",
+      method: "POST",
+      body: {
+        image_id: catId,
+        value: 1,
+      },
     });
   };
 
   voteDown = (catId) => {
-    return this._makeApiRequest("votes/", "POST", {
-      image_id: catId,
-      value: 0,
+    return this._makeApiRequest({
+      url: "votes",
+      method: "POST",
+      body: {
+        image_id: catId,
+        value: 0,
+      },
     });
   };
 
-  _makeApiRequest(url, method = "GET", body = undefined) {
-    return apiRequest(`${this.BASE_URL}/${url}`, method, this.apiKey, body);
-  }
+  _makeApiRequest = async ({
+    url,
+    method = "GET",
+    body = undefined,
+    queryParams = {},
+  }) => {
+    let items = [];
+    let page = 0;
 
-  _makeRequest(url, method = "GET", body = undefined) {
+    while (true) {
+      const response = await apiRequest(
+        `${this.BASE_URL}/${url}`,
+        method,
+        this.apiKey,
+        body,
+        { ...queryParams, page }
+      );
+      const totalCount = response.headers.get("pagination-count");
+
+      items = items.concat(response.json);
+      page += 1;
+      if (items.length >= totalCount) {
+        break;
+      }
+    }
+
+    return items;
+  };
+
+  _makeRequest = (url, method = "GET", body = undefined) => {
     return uploadRequest(`${this.BASE_URL}/${url}`, method, this.apiKey, body);
-  }
+  };
 }
 
 export const apiFromKey = () => {
@@ -63,8 +102,18 @@ export const apiFromKey = () => {
   return new CatsApi(apiKey);
 };
 
-const apiRequest = async (url, method = "GET", apiKey, body = undefined) => {
-  const response = await fetch(url, {
+const apiRequest = async (
+  url,
+  method = "GET",
+  apiKey,
+  body = undefined,
+  queryParams = {}
+) => {
+  const searchParams = new URLSearchParams();
+  Object.entries(queryParams).forEach(([key, value]) => {
+    searchParams.append(key, value);
+  });
+  const response = await fetch(`${url}?${searchParams.toString()}`, {
     method,
     body: JSON.stringify(body),
     headers: {
@@ -72,7 +121,8 @@ const apiRequest = async (url, method = "GET", apiKey, body = undefined) => {
       "Content-type": "application/json",
     },
   });
-  return response.json();
+  const json = await response.json();
+  return { json, headers: response.headers };
 };
 
 const uploadRequest = async (url, method = "GET", apiKey, body = undefined) => {

@@ -31,13 +31,17 @@ const Cat = ({
     onVoteChange();
   };
 
+  const score = votes
+    .map((vote) => 2 * vote.value - 1)
+    .reduce((a, b) => a + b, 0);
+
   return (
     <div>
       <img src={url} alt="cat" width="25%" />
       <button disabled={loading} onClick={handleToggleFavourite}>
         {favourite ? "unfavourite" : "favourite"}
       </button>
-      {votes.map((vote) => 2 * vote.value - 1).reduce((a, b) => a + b, 0)}
+      {score}
       <button disabled={loading} onClick={handleVoteUp}>
         Vote up
       </button>
