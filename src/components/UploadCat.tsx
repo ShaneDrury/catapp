@@ -10,16 +10,23 @@ const api = apiFromKey();
 const UploadCat = () => {
   const history = useHistory();
   const [loading, setLoading] = React.useState<boolean>(false);
+  const [error, setError] = React.useState<string>();
 
   const handleInputChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
+    setError(undefined);
     const eventFiles = event.target.files;
     if (eventFiles) {
       const file = eventFiles[0];
       setLoading(true);
-      await api.newCat(file);
-      history.push("/");
+      try {
+        await api.newCat(file);
+        history.push("/");
+      } catch (e) {
+        setLoading(false);
+        setError(e.message);
+      }
     }
   };
   return (
@@ -44,7 +51,8 @@ const UploadCat = () => {
           </span>
         </label>
       </div>
-      {loading && "Uploading cat..."}
+      {loading && "Uploading image..."}
+      {error && <div>There was an error uploading your image: {error}</div>}
     </section>
   );
 };

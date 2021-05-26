@@ -25,5 +25,9 @@ export const runRequest = async ({
   };
   const response = await fetch(`${url}?${searchParams.toString()}`, request);
   const json = await response.json();
-  return { json, headers: response.headers };
+  if (response.ok) {
+    return { json, headers: response.headers };
+  } else {
+    throw new Error(json.message);
+  }
 };
