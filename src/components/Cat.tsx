@@ -1,6 +1,6 @@
 import React from "react";
-import { apiFromKey } from "./catsApi";
-import { Favourite, Vote } from "./types";
+import { apiFromKey } from "../catsApi";
+import { Favourite, Vote } from "../types";
 import {
   faArrowDown,
   faArrowUp,

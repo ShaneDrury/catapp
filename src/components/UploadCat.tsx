@@ -1,5 +1,5 @@
 import React from "react";
-import { apiFromKey } from "./catsApi";
+import { apiFromKey } from "../catsApi";
 
 import { useHistory } from "react-router-dom";
 import { faUpload } from "@fortawesome/free-solid-svg-icons";

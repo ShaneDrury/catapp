@@ -1,6 +1,6 @@
 import Cat from "./Cat";
 import React from "react";
-import { useCats, useFavourites, useVotes } from "./hooks";
+import { useCats, useFavourites, useVotes } from "../hooks";
 
 const Uploaded = () => {
   const [catsLoading, cats] = useCats();
