@@ -1,15 +1,21 @@
-import React from "react";
-import { apiFromKey } from "./catsApi";
+import { apiFromKey, Cat as ICat, Favourite, Vote } from "./catsApi";
 import Cat from "./Cat";
 import { groupBy } from "lodash";
+import React from "react";
 
 const api = apiFromKey();
 
+interface CatState extends ICat {
+  loading: boolean;
+}
+
 const Uploaded = () => {
-  const [catIds, setCatIds] = React.useState([]);
-  const [catData, setCatData] = React.useState({});
-  const [favourites, setFavourites] = React.useState({});
-  const [votes, setVotes] = React.useState({});
+  const [catIds, setCatIds] = React.useState<string[]>([]);
+  const [catData, setCatData] = React.useState<{ [key: string]: CatState }>({});
+  const [favourites, setFavourites] = React.useState<{
+    [key: string]: Favourite;
+  }>({});
+  const [votes, setVotes] = React.useState<{ [key: string]: Vote[] }>({});
 
   const getVotes = async () => {
     const votes = await api.votes();
@@ -38,13 +44,13 @@ const Uploaded = () => {
     getVotes();
   }, []);
 
-  const handleVoteChange = async (id) => {
+  const handleVoteChange = async (id: string) => {
     setCatData({ ...catData, [id]: { ...catData[id], loading: true } });
     await getVotes();
     setCatData({ ...catData, [id]: { ...catData[id], loading: false } });
   };
 
-  const handleFavouriteChange = async (id) => {
+  const handleFavouriteChange = async (id: string) => {
     setCatData({ ...catData, [id]: { ...catData[id], loading: true } });
     await getFavourites();
     setCatData({ ...catData, [id]: { ...catData[id], loading: false } });

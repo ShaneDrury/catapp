@@ -7,10 +7,15 @@ const api = apiFromKey();
 
 const UploadCat = () => {
   const history = useHistory();
-  const handleInputChange = async (event) => {
-    const file = event.target.files[0];
-    await api.newCat(file);
-    history.push("/");
+  const handleInputChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const eventFiles = event.target.files;
+    if (eventFiles) {
+      const file = eventFiles[0];
+      await api.newCat(file);
+      history.push("/");
+    }
   };
   return (
     <div>

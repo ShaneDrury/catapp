@@ -1,7 +1,17 @@
 import React from "react";
-import { apiFromKey } from "./catsApi";
+import { apiFromKey, Favourite, Vote } from "./catsApi";
 
 const api = apiFromKey();
+
+interface CatProps {
+  id: string;
+  url: string;
+  favourite: Favourite;
+  votes?: Vote[];
+  onVoteChange: () => void;
+  onFavouriteChange: () => void;
+  loading: boolean;
+}
 
 const Cat = ({
   id,
@@ -11,7 +21,7 @@ const Cat = ({
   onVoteChange,
   onFavouriteChange,
   loading,
-}) => {
+}: CatProps) => {
   const handleToggleFavourite = async () => {
     if (favourite) {
       await api.unfavouriteCat(favourite.id);

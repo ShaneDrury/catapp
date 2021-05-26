@@ -1,28 +1,52 @@
+interface ApiRequest {
+  url: string;
+  method?: string;
+  body?: {};
+  queryParams?: {};
+}
+
+export interface Favourite {
+  id: string;
+  image_id: string;
+}
+
+export interface Vote {
+  value: number;
+  image_id: string;
+}
+
+export interface Cat {
+  id: string;
+  url: string;
+}
+
 export class CatsApi {
   BASE_URL = "https://api.thecatapi.com/v1";
 
-  constructor(apiKey) {
+  apiKey: string;
+
+  constructor(apiKey: string) {
     this.apiKey = apiKey;
   }
 
-  uploaded = () => {
+  uploaded = (): Promise<Cat[]> => {
     return this._makeApiRequest({
       url: "images/",
       queryParams: { limit: 100 },
-    });
+    }) as Promise<Cat[]>;
   };
 
-  newCat = (catData) => {
+  newCat = (catData: File) => {
     const catPicture = new FormData();
     catPicture.append("file", catData);
     return this._makeRequest("images/upload", "POST", catPicture);
   };
 
-  favourites = () => {
-    return this._makeApiRequest({ url: "favourites" });
+  favourites = (): Promise<Favourite[]> => {
+    return this._makeApiRequest({ url: "favourites" }) as Promise<Favourite[]>;
   };
 
-  favouriteCat = (catId) => {
+  favouriteCat = (catId: string) => {
     return this._makeApiRequest({
       url: "favourites",
       method: "POST",
@@ -30,18 +54,18 @@ export class CatsApi {
     });
   };
 
-  unfavouriteCat = (favouriteId) => {
+  unfavouriteCat = (favouriteId: string) => {
     return this._makeApiRequest({
       url: `favourites/${favouriteId}`,
       method: "DELETE",
     });
   };
 
-  votes = () => {
-    return this._makeApiRequest({ url: "votes" });
+  votes = (): Promise<Vote[]> => {
+    return this._makeApiRequest({ url: "votes" }) as Promise<Vote[]>;
   };
 
-  voteUp = (catId) => {
+  voteUp = (catId: string) => {
     return this._makeApiRequest({
       url: "votes",
       method: "POST",
@@ -52,7 +76,7 @@ export class CatsApi {
     });
   };
 
-  voteDown = (catId) => {
+  voteDown = (catId: string) => {
     return this._makeApiRequest({
       url: "votes",
       method: "POST",
@@ -66,10 +90,10 @@ export class CatsApi {
   _makeApiRequest = async ({
     url,
     method = "GET",
-    body = undefined,
+    body,
     queryParams = {},
-  }) => {
-    let items = [];
+  }: ApiRequest): Promise<unknown> => {
+    let items: unknown[] = [];
     let page = 0;
 
     while (true) {
@@ -78,9 +102,12 @@ export class CatsApi {
         method,
         this.apiKey,
         body,
-        { ...queryParams, page }
+        { ...queryParams, page: page.toString() }
       );
-      const totalCount = response.headers.get("pagination-count");
+      const totalCount = parseInt(
+        response.headers.get("pagination-count") || "0",
+        10
+      );
 
       items = items.concat(response.json);
       page += 1;
@@ -92,40 +119,51 @@ export class CatsApi {
     return items;
   };
 
-  _makeRequest = (url, method = "GET", body = undefined) => {
+  _makeRequest = (url: string, method = "GET", body?: FormData) => {
     return uploadRequest(`${this.BASE_URL}/${url}`, method, this.apiKey, body);
   };
 }
 
 export const apiFromKey = () => {
-  const apiKey = document.getElementById("cats-api").dataset.key;
-  return new CatsApi(apiKey);
+  const catsDataEl = document.getElementById("cats-api");
+
+  const apiKey = catsDataEl && catsDataEl.dataset.key;
+  return new CatsApi(apiKey || "test-api-key");
 };
 
 const apiRequest = async (
-  url,
+  url: string,
   method = "GET",
-  apiKey,
-  body = undefined,
-  queryParams = {}
+  apiKey: string,
+  body?: {},
+  queryParams: { [key: string]: string } = {}
 ) => {
   const searchParams = new URLSearchParams();
   Object.entries(queryParams).forEach(([key, value]) => {
     searchParams.append(key, value);
   });
-  const response = await fetch(`${url}?${searchParams.toString()}`, {
+
+  const request: RequestInit = {
     method,
-    body: JSON.stringify(body),
     headers: {
       "x-api-key": apiKey,
       "Content-type": "application/json",
     },
-  });
+  };
+  if (body) {
+    request.body = JSON.stringify(body);
+  }
+  const response = await fetch(`${url}?${searchParams.toString()}`, request);
   const json = await response.json();
   return { json, headers: response.headers };
 };
 
-const uploadRequest = async (url, method = "GET", apiKey, body = undefined) => {
+const uploadRequest = async (
+  url: string,
+  method = "GET",
+  apiKey: string,
+  body?: FormData
+) => {
   const response = await fetch(url, {
     method,
     body,
