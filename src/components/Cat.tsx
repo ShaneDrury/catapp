@@ -1,6 +1,6 @@
 import React from "react";
 import { apiFromKey } from "../catsApi";
-import { Favourite, Vote } from "../types";
+import { Favourite, Vote, Cat as ICat } from "../types";
 import {
   faArrowDown,
   faArrowUp,
@@ -17,9 +17,11 @@ const CardSpacer = styled.div`
   justify-content: space-between;
 `;
 
-interface CatProps {
-  id: string;
-  url: string;
+const CatImage = styled.img`
+  object-fit: contain;
+`;
+
+interface CatProps extends ICat {
   favourite: Favourite;
   votes?: Vote[];
   onVoteChange: () => void;
@@ -66,7 +68,7 @@ const Cat = ({
     <div className="card">
       <div className="card-image">
         <figure className="image is-4by3">
-          <img src={url} alt="cat" width="25%" />
+          <CatImage src={url} alt="cat" width="25%" />
         </figure>
       </div>
       <div className="card-content">
