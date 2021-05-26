@@ -75,7 +75,7 @@ export class CatsApi {
     });
   };
 
-  _makeApiRequest = async ({
+  private _makeApiRequest = async ({
     url,
     method = "GET",
     body,
@@ -111,7 +111,7 @@ export class CatsApi {
     return items;
   };
 
-  _makeRequest = (url: string, method = "GET", body?: FormData) => {
+  private _makeRequest = (url: string, method = "GET", body?: FormData) => {
     return runRequest({
       url: `${this.BASE_URL}/${url}`,
       method,
