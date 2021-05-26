@@ -3,19 +3,19 @@ import React from "react";
 import { useCats, useFavourites, useVotes } from "./hooks";
 
 const Uploaded = () => {
-  const [catIds, catData] = useCats();
-  const [favourites, fetchFavourites] = useFavourites();
-  const [votes, fetchVotes] = useVotes();
+  const [catsLoading, cats] = useCats();
+  const [loadingFavourites, favourites, fetchFavourites] = useFavourites();
+  const [loadingVotes, votes, fetchVotes] = useVotes();
 
   return (
     <div>
-      {catIds.map((id) => (
+      {cats.map((cat) => (
         <Cat
-          key={id}
-          {...catData.items[id]}
-          loading={catData.loading || votes.loading || favourites.loading}
-          favourite={favourites.items[id]}
-          votes={votes.items[id]}
+          key={cat.id}
+          {...cat}
+          loading={catsLoading || loadingVotes || loadingFavourites}
+          favourite={favourites[cat.id]}
+          votes={votes[cat.id]}
           onVoteChange={fetchVotes}
           onFavouriteChange={fetchFavourites}
         />

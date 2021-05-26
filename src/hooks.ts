@@ -3,104 +3,60 @@ import { Favourite, Vote, Cat as ICat } from "./types";
 import { apiFromKey } from "./catsApi";
 import { groupBy } from "lodash";
 
-interface CatDataState {
-  items: { [key: string]: ICat };
-  loading: boolean;
-  stale: boolean;
-}
-
-interface VotesState {
-  stale: boolean;
-  items: { [key: string]: Vote[] };
-  loading: boolean;
-}
-
-interface FavouritesState {
-  stale: boolean;
-  items: { [key: string]: Favourite };
-  loading: boolean;
-}
-
 const api = apiFromKey();
 
-export const useCats = (): [string[], CatDataState] => {
-  const [catIds, setCatIds] = React.useState<string[]>([]);
-  const [catData, setCatData] = React.useState<CatDataState>({
-    stale: true,
-    items: {},
-    loading: false,
-  });
+const useLoader = <S>(
+  getData: () => Promise<S>,
+  initial: S
+): [boolean, S, () => void] => {
+  const [loading, setLoading] = React.useState<boolean>(false);
+  const [stale, setStale] = React.useState<boolean>(true);
+  const [data, setData] = React.useState<S>(initial);
   React.useEffect(() => {
-    const getCats = async () => {
-      setCatData({ ...catData, loading: true });
-      const cats = await api.uploaded();
-      setCatIds(cats.map((cat) => cat.id));
-      setCatData({
-        loading: false,
-        stale: false,
-        items: cats.reduce((acc, cat) => ({ ...acc, [cat.id]: cat }), {}),
-      });
+    const fetchData = async () => {
+      setLoading(true);
+      const newData = await getData();
+      setLoading(false);
+      setStale(false);
+      setData(newData);
     };
-    if (catData.stale && !catData.loading) {
-      getCats();
+    if (stale && !loading) {
+      fetchData();
     }
-  }, [catData]);
-  return [catIds, catData];
+  }, [getData, loading, stale]);
+  const fetchData = () => {
+    setStale(true);
+  };
+  return [loading, data, fetchData];
 };
 
-export const useFavourites = (): [FavouritesState, () => void] => {
-  const [favourites, setFavourites] = React.useState<FavouritesState>({
-    stale: true,
-    items: {},
-    loading: false,
-  });
-  React.useEffect(() => {
-    const getFavourites = async () => {
-      setFavourites({ ...favourites, loading: true });
-      const newFavourites = await api.favourites();
-      return setFavourites({
-        stale: false,
-        loading: false,
-        items: newFavourites.reduce(
-          (acc, favourite) => ({ ...acc, [favourite.image_id]: favourite }),
-          {}
-        ),
-      });
-    };
-    if (favourites.stale && !favourites.loading) {
-      getFavourites();
-    }
-  }, [favourites]);
-
-  const fetchFavourites = () => {
-    setFavourites({ ...favourites, stale: true });
-  };
-  return [favourites, fetchFavourites];
+export const useCats = (): [boolean, ICat[]] => {
+  const [loading, cats] = useLoader<ICat[]>(api.uploaded, []);
+  return [loading, cats];
 };
 
-export const useVotes = (): [VotesState, () => void] => {
-  const [votes, setVotes] = React.useState<VotesState>({
-    stale: true,
-    items: {},
-    loading: false,
-  });
+export const useFavourites = (): [
+  boolean,
+  { [key: string]: Favourite },
+  () => void
+] => {
+  const [loading, favourites, fetchFavourites] = useLoader<Favourite[]>(
+    api.favourites,
+    []
+  );
+  const groupedFavourites = favourites.reduce(
+    (acc, favourite) => ({ ...acc, [favourite.image_id]: favourite }),
+    {}
+  );
+  return [loading, groupedFavourites, fetchFavourites];
+};
 
-  React.useEffect(() => {
-    const getVotes = async () => {
-      setVotes({ ...votes, loading: true });
-      const newVotes = await api.votes();
-      return setVotes({
-        stale: false,
-        loading: false,
-        items: groupBy(newVotes, (vote) => vote.image_id),
-      });
-    };
-    if (votes.stale && !votes.loading) {
-      getVotes();
-    }
-  }, [votes]);
-  const fetchVotes = () => {
-    setVotes({ ...votes, stale: true });
-  };
-  return [votes, fetchVotes];
+export const useVotes = (): [
+  boolean,
+  { [key: string]: Vote[] },
+  () => void
+] => {
+  const [loading, votes, fetchVotes] = useLoader<Vote[]>(api.votes, []);
+  const groupedVotes = groupBy(votes, (vote) => vote.image_id);
+  return [loading, groupedVotes, fetchVotes];
 };
