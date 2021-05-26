@@ -16,8 +16,8 @@ const useLoader = <S>(
     const fetchData = async () => {
       setLoading(true);
       const newData = await getData();
-      setLoading(false);
       setStale(false);
+      setLoading(false);
       setData(newData);
     };
     if (stale && !loading) {

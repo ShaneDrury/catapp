@@ -8,9 +8,9 @@ interface ApiRequest {
   queryParams?: {};
 }
 
-export class CatsApi {
-  BASE_URL = "https://api.thecatapi.com/v1";
+export const BASE_URL = "https://api.thecatapi.com/v1";
 
+export class CatsApi {
   apiKey: string;
 
   constructor(apiKey: string) {
@@ -87,7 +87,7 @@ export class CatsApi {
 
     while (true) {
       const response = await runRequest({
-        url: `${this.BASE_URL}/${url}`,
+        url: `${BASE_URL}/${url}`,
         method,
         body: jsonBody,
         queryParams: { ...queryParams, page: page.toString() },
@@ -113,7 +113,7 @@ export class CatsApi {
 
   private _makeRequest = (url: string, method = "GET", body?: FormData) => {
     return runRequest({
-      url: `${this.BASE_URL}/${url}`,
+      url: `${BASE_URL}/${url}`,
       method,
       headers: { "x-api-key": this.apiKey },
       body,

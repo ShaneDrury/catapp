@@ -77,6 +77,7 @@ const Cat = ({
             <div>Score: {score}</div>
             <span className="icon is-clickable">
               <FontAwesomeIcon
+                title={favourite ? "favourite" : "not favourite"}
                 icon={favourite ? faHeart : faHeartRegular}
                 color="red"
                 onClick={handleToggleFavourite}
