@@ -9,6 +9,7 @@ import {
 import { faHeart as faHeartRegular } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import styled from "styled-components";
+import { useMutation, useQueryClient } from "react-query";
 
 const api = apiFromKey();
 
@@ -24,41 +25,31 @@ const CatImage = styled.img`
 interface CatProps extends ICat {
   favourite: Favourite;
   votes?: Vote[];
-  onVoteChange: () => void;
-  onFavouriteChange: () => void;
   loading: boolean;
 }
 
-const Cat = ({
-  id,
-  url,
-  favourite,
-  votes = [],
-  onVoteChange,
-  onFavouriteChange,
-  loading,
-}: CatProps) => {
-  const handleToggleFavourite = async () => {
-    if (loading) {
-      return;
-    }
-    if (favourite) {
-      await api.unfavouriteCat(favourite.id);
-    } else {
-      await api.favouriteCat(id);
-    }
-    onFavouriteChange();
-  };
+const Cat = ({ id, url, favourite, votes = [], loading }: CatProps) => {
+  const queryClient = useQueryClient();
 
-  const handleVoteUp = async () => {
-    await api.voteUp(id);
-    onVoteChange();
-  };
+  const favouriteMutation = useMutation(
+    () => {
+      if (favourite) {
+        return api.unfavouriteCat(favourite.id);
+      } else {
+        return api.favouriteCat(id);
+      }
+    },
+    {
+      onSuccess: () => queryClient.invalidateQueries("favourites"),
+    }
+  );
 
-  const handleVoteDown = async () => {
-    await api.voteDown(id);
-    onVoteChange();
-  };
+  const voteUp = useMutation(() => api.voteUp(id), {
+    onSuccess: () => queryClient.invalidateQueries("votes"),
+  });
+  const voteDown = useMutation(() => api.voteDown(id), {
+    onSuccess: () => queryClient.invalidateQueries("votes"),
+  });
 
   const score = votes
     .map((vote) => 2 * vote.value - 1)
@@ -80,7 +71,7 @@ const Cat = ({
                 title={favourite ? "favourite" : "not favourite"}
                 icon={favourite ? faHeart : faHeartRegular}
                 color="red"
-                onClick={handleToggleFavourite}
+                onClick={() => favouriteMutation.mutate()}
               />
             </span>
           </CardSpacer>
@@ -88,7 +79,7 @@ const Cat = ({
             <button
               className="button"
               disabled={loading}
-              onClick={handleVoteUp}
+              onClick={() => voteUp.mutate()}
             >
               <span className="icon">
                 <FontAwesomeIcon icon={faArrowUp} />
@@ -98,7 +89,7 @@ const Cat = ({
             <button
               className="button"
               disabled={loading}
-              onClick={handleVoteDown}
+              onClick={() => voteDown.mutate()}
             >
               <span className="icon">
                 <FontAwesomeIcon icon={faArrowDown} />

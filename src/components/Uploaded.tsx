@@ -3,21 +3,35 @@ import React from "react";
 import { useCats, useFavourites, useVotes } from "../hooks";
 
 const Uploaded = () => {
-  const [catsLoading, cats] = useCats();
-  const [loadingFavourites, favourites, fetchFavourites] = useFavourites();
-  const [loadingVotes, votes, fetchVotes] = useVotes();
+  const { isLoading: loadingCats, data: cats, error: catsError } = useCats();
+  const {
+    isLoading: loadingFavourites,
+    data: favourites,
+    error: favouritesError,
+  } = useFavourites();
+  const {
+    isLoading: loadingVotes,
+    data: votes,
+    error: votesError,
+  } = useVotes();
+
+  if (loadingCats) {
+    return <div>Loading!</div>;
+  }
+
+  if (catsError || favouritesError || votesError) {
+    return <div>Error loading cats: {catsError}</div>;
+  }
 
   return (
     <div className="columns is-multiline">
-      {cats.map((cat) => (
+      {cats!.map((cat) => (
         <div key={cat.id} className="column is-one-quarter">
           <Cat
             {...cat}
-            loading={catsLoading || loadingVotes || loadingFavourites}
+            loading={loadingCats || loadingVotes || loadingFavourites}
             favourite={favourites[cat.id]}
             votes={votes[cat.id]}
-            onVoteChange={fetchVotes}
-            onFavouriteChange={fetchFavourites}
           />
         </div>
       ))}
