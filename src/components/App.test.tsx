@@ -40,7 +40,7 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 test("happy path, rendering the score and buttons", async () => {
-  const { unmount } = render(<WrappedApp />);
+  render(<WrappedApp />);
 
   const score = await screen.findByText(/Score: 2/i);
   expect(score).toBeInTheDocument();
@@ -50,5 +50,4 @@ test("happy path, rendering the score and buttons", async () => {
 
   const voteUp = await screen.findByText(/Vote up/i);
   expect(voteUp).toBeInTheDocument();
-  unmount();
 });
