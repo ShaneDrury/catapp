@@ -2,7 +2,21 @@ import { render, screen } from "@testing-library/react";
 import { rest } from "msw";
 import { setupServer } from "msw/node";
 import App from "./App";
-import { BASE_URL } from "../catsApi";
+import { apiFromKey, BASE_URL } from "../catsApi";
+import { CatApiContext } from "../hooks";
+import { QueryClient, QueryClientProvider } from "react-query";
+
+const api = apiFromKey();
+
+const queryClient = new QueryClient();
+
+const WrappedApp = () => (
+  <QueryClientProvider client={queryClient}>
+    <CatApiContext.Provider value={api}>
+      <App />
+    </CatApiContext.Provider>
+  </QueryClientProvider>
+);
 
 const server = setupServer(
   rest.get(`${BASE_URL}/images`, (req, res, ctx) => {
@@ -26,7 +40,7 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 test("happy path, rendering the score and buttons", async () => {
-  const { unmount } = render(<App />);
+  const { unmount } = render(<WrappedApp />);
 
   const score = await screen.findByText(/Score: 2/i);
   expect(score).toBeInTheDocument();

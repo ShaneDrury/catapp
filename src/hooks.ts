@@ -1,15 +1,27 @@
 import { Favourite, Vote, Cat as ICat } from "./types";
-import { apiFromKey } from "./catsApi";
+import { CatsApi } from "./catsApi";
 import { groupBy } from "lodash";
 import { useQuery } from "react-query";
+import React from "react";
 
-const api = apiFromKey();
+export const CatApiContext =
+  React.createContext<CatsApi | undefined>(undefined);
+
+export const useCatApi = () => {
+  const api = React.useContext(CatApiContext);
+  if (api === undefined) {
+    throw new Error("Please pass in api to CatApiContext");
+  }
+  return api;
+};
 
 export const useCats = () => {
+  const api = useCatApi();
   return useQuery<ICat[], string>("cats", api.uploaded);
 };
 
 export const useFavourites = () => {
+  const api = useCatApi();
   const { data, ...rest } = useQuery<Favourite[], string>(
     "favourites",
     api.favourites
@@ -25,6 +37,7 @@ export const useFavourites = () => {
 };
 
 export const useVotes = () => {
+  const api = useCatApi();
   const { data, ...rest } = useQuery<Vote[], string>("votes", api.votes);
   let groupedVotes: { [key: string]: Vote[] } = {};
   if (data) {
