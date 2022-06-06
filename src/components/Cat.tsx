@@ -51,9 +51,10 @@ const Cat = ({ id, url, favourite, votes = [], loading }: CatProps) => {
     onSuccess: () => queryClient.invalidateQueries("votes"),
   });
 
-  const score = votes
-    .map((vote) => 2 * vote.value - 1)
-    .reduce((a, b) => a + b, 0);
+  const score = React.useMemo(
+    () => votes.map((vote) => 2 * vote.value - 1).reduce((a, b) => a + b, 0),
+    [votes]
+  );
 
   return (
     <div className="card">
