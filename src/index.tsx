@@ -7,7 +7,13 @@ import { QueryClient, QueryClientProvider } from "react-query";
 import { apiFromKey } from "./catsApi";
 import { CatApiContext } from "./hooks";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const api = apiFromKey();
 
