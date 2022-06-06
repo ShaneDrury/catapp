@@ -8,6 +8,13 @@ import {
   NavLink,
 } from "react-router-dom";
 
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/upload" element={<UploadCat />} />
+    <Route path="/" element={<Uploaded />} />
+  </Routes>
+);
+
 const App = () => (
   <div>
     <Router>
@@ -44,10 +51,7 @@ const App = () => (
       </nav>
       <main>
         <div className="section">
-          <Routes>
-            <Route path="/upload" element={<UploadCat />} />
-            <Route path="/" element={<Uploaded />} />
-          </Routes>
+          <AppRoutes />
         </div>
       </main>
     </Router>
