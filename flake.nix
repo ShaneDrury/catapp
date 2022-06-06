@@ -21,6 +21,7 @@
       devShell = with pkgs; mkShell {
         buildInputs = with pkgs; [
           yarn
+          nodejs
         ];
       };
     }
