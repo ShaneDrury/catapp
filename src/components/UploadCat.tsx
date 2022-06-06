@@ -1,14 +1,14 @@
 import React from "react";
 import { apiFromKey } from "../catsApi";
 
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { faUpload } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const api = apiFromKey();
 
 const UploadCat = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const [loading, setLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>();
 
@@ -22,10 +22,14 @@ const UploadCat = () => {
       setLoading(true);
       try {
         await api.newCat(file);
-        history.push("/");
+        navigate("/");
       } catch (e) {
-        setLoading(false);
-        setError(e.message);
+        if (e instanceof Error) {
+          setLoading(false);
+          setError(e.message);
+        } else {
+          throw e;
+        }
       }
     }
   };

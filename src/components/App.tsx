@@ -3,7 +3,7 @@ import UploadCat from "./UploadCat";
 
 import {
   BrowserRouter as Router,
-  Switch,
+  Routes,
   Route,
   NavLink,
 } from "react-router-dom";
@@ -22,18 +22,20 @@ const App = () => (
         <div id="navbarBasicExample" className="navbar-menu">
           <div className="navbar-start">
             <NavLink
-              exact
+              end
               to="/"
-              className="navbar-item"
-              activeClassName="is-active"
+              className={({ isActive }) =>
+                "navbar-item" + (isActive ? " is-active" : "")
+              }
             >
               My Cats
             </NavLink>
             <NavLink
-              exact
+              end
               to="/upload"
-              className="navbar-item"
-              activeClassName="is-active"
+              className={({ isActive }) =>
+                "navbar-item" + (isActive ? " is-active" : "")
+              }
             >
               Upload a cat
             </NavLink>
@@ -42,14 +44,10 @@ const App = () => (
       </nav>
       <main>
         <div className="section">
-          <Switch>
-            <Route path="/upload">
-              <UploadCat />
-            </Route>
-            <Route path="/">
-              <Uploaded />
-            </Route>
-          </Switch>
+          <Routes>
+            <Route path="/upload" element={<UploadCat />} />
+            <Route path="/" element={<Uploaded />} />
+          </Routes>
         </div>
       </main>
     </Router>
