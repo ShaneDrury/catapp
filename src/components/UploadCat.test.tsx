@@ -1,12 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import { rest } from "msw";
 import { setupServer } from "msw/node";
-import { apiFromKey, BASE_URL } from "../catsApi";
+import { BASE_URL } from "../catsApi";
 import UploadCat from "./UploadCat";
 import user from "@testing-library/user-event";
+import { Wrapped } from "./testing";
 import { MemoryRouter } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "react-query";
-import { CatApiContext } from "../hooks";
 
 const server = setupServer(
   rest.post(`${BASE_URL}/images/upload`, (req, res, ctx) => {
@@ -18,29 +17,14 @@ beforeAll(() => server.listen());
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-const api = apiFromKey();
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      suspense: true,
-    },
-  },
-});
-
-const WrappedCat = () => (
-  <QueryClientProvider client={queryClient}>
-    <CatApiContext.Provider value={api}>
+test("uploading failure", async () => {
+  render(
+    <Wrapped>
       <MemoryRouter>
         <UploadCat />
       </MemoryRouter>
-    </CatApiContext.Provider>
-  </QueryClientProvider>
-);
-
-test("uploading failure", async () => {
-  render(<WrappedCat />);
+    </Wrapped>
+  );
 
   expect(await screen.findByText(/Choose a file/i)).toBeInTheDocument();
 
