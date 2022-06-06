@@ -16,7 +16,7 @@ const UploadCat = () => {
     if (eventFiles) {
       const file = eventFiles[0];
       try {
-        await uploadCat.mutate(file);
+        await uploadCat.mutateAsync(file);
         navigate("/");
       } catch (e) {}
     }
@@ -45,7 +45,9 @@ const UploadCat = () => {
       </div>
       {uploadCat.status === "loading" && "Uploading image..."}
       {uploadCat.status === "error" && (
-        <div>There was an error uploading your image: {uploadCat.error}</div>
+        <div>
+          There was an error uploading your image: {uploadCat.error.message}
+        </div>
       )}
     </section>
   );

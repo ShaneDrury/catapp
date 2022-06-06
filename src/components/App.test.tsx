@@ -42,12 +42,9 @@ afterAll(() => server.close());
 test("happy path, rendering the score and buttons", async () => {
   render(<WrappedApp />);
 
-  const score = await screen.findByText(/Score: 2/i);
-  expect(score).toBeInTheDocument();
+  expect(await screen.findByText(/Score: 2/i)).toBeInTheDocument();
 
-  const favourite = await screen.findByText(/favourite/i);
-  expect(favourite).toBeInTheDocument();
+  expect(await screen.findByText(/favourite/i)).toBeInTheDocument();
 
-  const voteUp = await screen.findByText(/Vote up/i);
-  expect(voteUp).toBeInTheDocument();
+  expect(await screen.findByText(/Vote up/i)).toBeInTheDocument();
 });

@@ -49,7 +49,7 @@ export const useVotes = () => {
 
 export const useUploadCat = () => {
   const api = useCatApi();
-  return useMutation<unknown, string, File>(api.newCat);
+  return useMutation<unknown, { message: string }, File>(api.newCat);
 };
 
 export const useVoteDown = (id: string) => {
