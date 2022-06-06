@@ -1,36 +1,24 @@
 import React from "react";
-import { apiFromKey } from "../catsApi";
 
 import { useNavigate } from "react-router-dom";
 import { faUpload } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-
-const api = apiFromKey();
+import { useUploadCat } from "../hooks";
 
 const UploadCat = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = React.useState<boolean>(false);
-  const [error, setError] = React.useState<string>();
+  const uploadCat = useUploadCat();
 
   const handleInputChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    setError(undefined);
     const eventFiles = event.target.files;
     if (eventFiles) {
       const file = eventFiles[0];
-      setLoading(true);
       try {
-        await api.newCat(file);
+        await uploadCat.mutate(file);
         navigate("/");
-      } catch (e) {
-        if (e instanceof Error) {
-          setLoading(false);
-          setError(e.message);
-        } else {
-          throw e;
-        }
-      }
+      } catch (e) {}
     }
   };
   return (
@@ -41,7 +29,7 @@ const UploadCat = () => {
       <div className="file">
         <label className="file-label">
           <input
-            disabled={loading}
+            disabled={uploadCat.status === "loading"}
             onChange={handleInputChange}
             className="file-input"
             type="file"
@@ -55,8 +43,10 @@ const UploadCat = () => {
           </span>
         </label>
       </div>
-      {loading && "Uploading image..."}
-      {error && <div>There was an error uploading your image: {error}</div>}
+      {uploadCat.status === "loading" && "Uploading image..."}
+      {uploadCat.status === "error" && (
+        <div>There was an error uploading your image: {uploadCat.error}</div>
+      )}
     </section>
   );
 };

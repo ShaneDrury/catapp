@@ -1,11 +1,12 @@
 import { Favourite, Vote, Cat as ICat } from "./types";
 import { CatsApi } from "./catsApi";
 import { groupBy } from "lodash";
-import { useQuery } from "react-query";
+import { useMutation, useQuery } from "react-query";
 import React from "react";
 
-export const CatApiContext =
-  React.createContext<CatsApi | undefined>(undefined);
+export const CatApiContext = React.createContext<CatsApi | undefined>(
+  undefined
+);
 
 export const useCatApi = () => {
   const api = React.useContext(CatApiContext);
@@ -44,4 +45,9 @@ export const useVotes = () => {
     groupedVotes = groupBy(data, (vote) => vote.image_id);
   }
   return { ...rest, data: groupedVotes };
+};
+
+export const useUploadCat = () => {
+  const api = useCatApi();
+  return useMutation<unknown, string, File>(api.newCat);
 };

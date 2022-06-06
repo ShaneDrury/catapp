@@ -25,10 +25,9 @@ const CatImage = styled.img`
 interface CatProps extends ICat {
   favourite: Favourite;
   votes?: Vote[];
-  loading: boolean;
 }
 
-const Cat = ({ id, url, favourite, votes = [], loading }: CatProps) => {
+const Cat = ({ id, url, favourite, votes = [] }: CatProps) => {
   const queryClient = useQueryClient();
 
   const favouriteMutation = useMutation(
@@ -79,7 +78,7 @@ const Cat = ({ id, url, favourite, votes = [], loading }: CatProps) => {
           <CardSpacer className="buttons">
             <button
               className="button"
-              disabled={loading}
+              disabled={voteUp.status === "loading"}
               onClick={() => voteUp.mutate()}
             >
               <span className="icon">
@@ -89,7 +88,7 @@ const Cat = ({ id, url, favourite, votes = [], loading }: CatProps) => {
             </button>
             <button
               className="button"
-              disabled={loading}
+              disabled={voteDown.status === "loading"}
               onClick={() => voteDown.mutate()}
             >
               <span className="icon">
