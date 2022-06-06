@@ -3,29 +3,9 @@ import React from "react";
 import { useCats, useFavourites, useVotes } from "../hooks";
 
 const Uploaded = () => {
-  const { status: catsStatus, data: cats, error: catsError } = useCats();
-  const {
-    status: favouritesStatus,
-    data: favourites,
-    error: favouritesError,
-  } = useFavourites();
-  const { status: votesStatus, data: votes, error: votesError } = useVotes();
-
-  if (
-    catsStatus === "loading" ||
-    favouritesStatus === "loading" ||
-    votesStatus === "loading" ||
-    catsStatus === "idle" ||
-    favouritesStatus === "idle" ||
-    votesStatus === "idle"
-  ) {
-    return <div>Loading!</div>;
-  }
-
-  if (catsError || favouritesError || votesError) {
-    return <div>Error loading cats: {catsError}</div>;
-  }
-
+  const { data: cats } = useCats();
+  const { data: favourites } = useFavourites();
+  const { data: votes } = useVotes();
   return (
     <div className="columns is-multiline">
       {cats!.map((cat) => (

@@ -8,7 +8,14 @@ import { QueryClient, QueryClientProvider } from "react-query";
 
 const api = apiFromKey();
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      suspense: true,
+    },
+  },
+});
 
 const WrappedApp = () => (
   <QueryClientProvider client={queryClient}>
