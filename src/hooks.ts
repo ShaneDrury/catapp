@@ -1,7 +1,7 @@
 import { Favourite, Vote, Cat as ICat } from "./types";
 import { CatsApi } from "./catsApi";
 import { groupBy } from "lodash";
-import { useMutation, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import React from "react";
 
 export const CatApiContext = React.createContext<CatsApi | undefined>(
@@ -50,4 +50,37 @@ export const useVotes = () => {
 export const useUploadCat = () => {
   const api = useCatApi();
   return useMutation<unknown, string, File>(api.newCat);
+};
+
+export const useVoteDown = (id: string) => {
+  const api = useCatApi();
+  const queryClient = useQueryClient();
+  return useMutation(() => api.voteDown(id), {
+    onSuccess: () => queryClient.invalidateQueries("votes"),
+  });
+};
+
+export const useVoteUp = (id: string) => {
+  const api = useCatApi();
+  const queryClient = useQueryClient();
+  return useMutation(() => api.voteUp(id), {
+    onSuccess: () => queryClient.invalidateQueries("votes"),
+  });
+};
+
+export const useFavourite = (id: string, favourite: Favourite) => {
+  const api = useCatApi();
+  const queryClient = useQueryClient();
+  return useMutation(
+    () => {
+      if (favourite) {
+        return api.unfavouriteCat(favourite.id);
+      } else {
+        return api.favouriteCat(id);
+      }
+    },
+    {
+      onSuccess: () => queryClient.invalidateQueries("favourites"),
+    }
+  );
 };

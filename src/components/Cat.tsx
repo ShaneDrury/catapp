@@ -1,5 +1,4 @@
 import React from "react";
-import { apiFromKey } from "../catsApi";
 import { Favourite, Vote, Cat as ICat } from "../types";
 import {
   faArrowDown,
@@ -9,9 +8,7 @@ import {
 import { faHeart as faHeartRegular } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import styled from "styled-components";
-import { useMutation, useQueryClient } from "react-query";
-
-const api = apiFromKey();
+import { useFavourite, useVoteDown, useVoteUp } from "../hooks";
 
 const CardSpacer = styled.div`
   display: flex;
@@ -28,27 +25,9 @@ interface CatProps extends ICat {
 }
 
 const Cat = ({ id, url, favourite, votes = [] }: CatProps) => {
-  const queryClient = useQueryClient();
-
-  const favouriteMutation = useMutation(
-    () => {
-      if (favourite) {
-        return api.unfavouriteCat(favourite.id);
-      } else {
-        return api.favouriteCat(id);
-      }
-    },
-    {
-      onSuccess: () => queryClient.invalidateQueries("favourites"),
-    }
-  );
-
-  const voteUp = useMutation(() => api.voteUp(id), {
-    onSuccess: () => queryClient.invalidateQueries("votes"),
-  });
-  const voteDown = useMutation(() => api.voteDown(id), {
-    onSuccess: () => queryClient.invalidateQueries("votes"),
-  });
+  const favouriteMutation = useFavourite(id, favourite);
+  const voteUp = useVoteUp(id);
+  const voteDown = useVoteDown(id);
 
   const score = React.useMemo(
     () => votes.map((vote) => 2 * vote.value - 1).reduce((a, b) => a + b, 0),
