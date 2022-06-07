@@ -9,18 +9,16 @@ const UploadCat = () => {
   const navigate = useNavigate();
   const uploadCat = useUploadCat();
 
-  const handleInputChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const eventFiles = event.target.files;
     if (eventFiles) {
       const file = eventFiles[0];
-      try {
-        await uploadCat.mutateAsync(file);
-        navigate("/");
-      } catch (e) {}
+      uploadCat.mutate(file, {
+        onSuccess: () => navigate("/"),
+      });
     }
   };
+
   return (
     <section className="hero">
       <div className="hero-body">
