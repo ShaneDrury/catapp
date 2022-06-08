@@ -9,15 +9,18 @@ const UploadCat = () => {
   const navigate = useNavigate();
   const uploadCat = useUploadCat();
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const eventFiles = event.target.files;
-    if (eventFiles) {
-      const file = eventFiles[0];
-      uploadCat.mutate(file, {
-        onSuccess: () => navigate("/"),
-      });
-    }
-  };
+  const handleInputChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const eventFiles = event.target.files;
+      if (eventFiles) {
+        const file = eventFiles[0];
+        uploadCat.mutate(file, {
+          onSuccess: () => navigate("/"),
+        });
+      }
+    },
+    [navigate, uploadCat]
+  );
 
   return (
     <section className="hero">
