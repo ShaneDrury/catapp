@@ -10,7 +10,11 @@ const Uploaded = () => {
     <div className="columns is-multiline">
       {cats!.map((cat) => (
         <div key={cat.id} className="column is-one-quarter">
-          <Cat {...cat} favourite={favourites[cat.id]} votes={votes[cat.id]} />
+          <Cat
+            {...cat}
+            favourite={favourites![cat.id]}
+            votes={votes![cat.id]}
+          />
         </div>
       ))}
     </div>

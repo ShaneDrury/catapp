@@ -27,23 +27,25 @@ export const useFavourites = () => {
     "favourites",
     api.favourites
   );
-  let groupedFavourites: { [key: string]: Favourite } = {};
-  if (data) {
-    groupedFavourites = data.reduce(
-      (acc, favourite) => ({ ...acc, [favourite.image_id]: favourite }),
-      {}
-    );
-  }
+  const groupedFavourites = React.useMemo(
+    () =>
+      data &&
+      data.reduce<Record<string, Favourite>>(
+        (acc, favourite) => ({ ...acc, [favourite.image_id]: favourite }),
+        {}
+      ),
+    [data]
+  );
   return { ...rest, data: groupedFavourites };
 };
 
 export const useVotes = () => {
   const api = useCatApi();
   const { data, ...rest } = useQuery<Vote[], string>("votes", api.votes);
-  let groupedVotes: { [key: string]: Vote[] } = {};
-  if (data) {
-    groupedVotes = groupBy(data, (vote) => vote.image_id);
-  }
+  const groupedVotes = React.useMemo(
+    () => data && groupBy(data, (vote) => vote.image_id),
+    [data]
+  );
   return { ...rest, data: groupedVotes };
 };
 
