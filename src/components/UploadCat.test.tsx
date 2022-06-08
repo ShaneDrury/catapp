@@ -5,7 +5,6 @@ import { BASE_URL } from "../catsApi";
 import UploadCat from "./UploadCat";
 import user from "@testing-library/user-event";
 import { Wrapped } from "./testing";
-import { MemoryRouter } from "react-router-dom";
 
 const server = setupServer(
   rest.post(`${BASE_URL}/images/upload`, (req, res, ctx) => {
@@ -20,9 +19,7 @@ afterAll(() => server.close());
 test("uploading failure", async () => {
   render(
     <Wrapped>
-      <MemoryRouter>
-        <UploadCat />
-      </MemoryRouter>
+      <UploadCat />
     </Wrapped>
   );
 
