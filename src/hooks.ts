@@ -1,6 +1,6 @@
 import { Favourite, Vote, Cat as ICat } from "./types";
 import { CatsApi } from "./catsApi";
-import { groupBy } from "lodash";
+import { groupBy } from "./utils";
 import { useMutation, useQuery, useQueryClient } from "react-query";
 import React from "react";
 
