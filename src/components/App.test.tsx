@@ -1,4 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import {
+  render,
+  screen,
+  waitForElementToBeRemoved,
+} from "@testing-library/react";
 import { rest } from "msw";
 import { setupServer } from "msw/node";
 import App from "./App";
@@ -32,10 +36,19 @@ test("happy path, rendering the score and buttons", async () => {
       <App />
     </Wrapped>
   );
+  await waitForElementToBeRemoved(() => screen.queryByText("Loading!"));
 
-  expect(await screen.findByText(/Score: 2/i)).toBeInTheDocument();
+  expect(await screen.findByText("Score: 2")).toBeInTheDocument();
 
-  expect(await screen.findByText(/favourite/i)).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Unfavourite cat cat_id" })
+  ).toBeInTheDocument();
 
-  expect(await screen.findByText(/Vote up/i)).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Upvote cat cat_id" })
+  ).toBeInTheDocument();
+
+  expect(
+    screen.getByRole("button", { name: "Downvote cat cat_id" })
+  ).toBeInTheDocument();
 });

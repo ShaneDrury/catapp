@@ -1,8 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { faUpload } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useUploadCat } from "../hooks";
+import { Input, Stack, Typography } from "@mui/material";
 
 const UploadCat = () => {
   const navigate = useNavigate();
@@ -22,34 +21,22 @@ const UploadCat = () => {
   );
 
   return (
-    <section className="hero">
-      <div className="hero-body">
-        <p className="title">Upload a cat</p>
-      </div>
-      <div className="file">
-        <label className="file-label">
-          <input
-            disabled={uploadCat.status === "loading"}
-            onChange={handleInputChange}
-            className="file-input"
-            type="file"
-            name="file"
-          />
-          <span className="file-cta">
-            <span className="file-icon">
-              <FontAwesomeIcon icon={faUpload} />
-            </span>
-            <span className="file-label">Choose a file</span>
-          </span>
-        </label>
-      </div>
+    <Stack spacing={2}>
+      <Typography variant="h1">Upload a cat</Typography>
+      <Input
+        inputProps={{ "aria-label": "Choose a file" }}
+        disabled={uploadCat.status === "loading"}
+        onChange={handleInputChange}
+        type="file"
+        name="file"
+      />
       {uploadCat.status === "loading" && "Uploading image..."}
       {uploadCat.status === "error" && (
-        <div>
+        <Typography>
           There was an error uploading your image: {uploadCat.error.message}
-        </div>
+        </Typography>
       )}
-    </section>
+    </Stack>
   );
 };
 

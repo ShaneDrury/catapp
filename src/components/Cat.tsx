@@ -1,23 +1,20 @@
 import React from "react";
 import { Favourite, Vote, Cat as ICat } from "../types";
-import {
-  faArrowDown,
-  faArrowUp,
-  faHeart,
-} from "@fortawesome/free-solid-svg-icons";
-import { faHeart as faHeartRegular } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import styled from "styled-components";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import { useFavourite, useVoteDown, useVoteUp } from "../hooks";
-
-const CardSpacer = styled.div`
-  display: flex;
-  justify-content: space-between;
-`;
-
-const CatImage = styled.img`
-  object-fit: contain;
-`;
+import {
+  Button,
+  ButtonGroup,
+  Card,
+  CardActions,
+  CardContent,
+  CardMedia,
+  IconButton,
+  Typography,
+} from "@mui/material";
 
 interface CatProps extends ICat {
   favourite: Favourite;
@@ -35,50 +32,41 @@ const Cat = ({ id, url, favourite, votes = [] }: CatProps) => {
   );
 
   return (
-    <div className="card">
-      <div className="card-image">
-        <figure className="image is-4by3">
-          <CatImage src={url} alt="cat" width="25%" />
-        </figure>
-      </div>
-      <div className="card-content">
-        <div className="content">
-          <CardSpacer>
-            <div>Score: {score}</div>
-            <span className="icon is-clickable">
-              <FontAwesomeIcon
-                title={favourite ? "favourite" : "not favourite"}
-                icon={favourite ? faHeart : faHeartRegular}
-                color="red"
-                onClick={() => favouriteMutation.mutate()}
-              />
-            </span>
-          </CardSpacer>
-          <CardSpacer className="buttons">
-            <button
-              className="button"
-              disabled={voteUp.status === "loading"}
-              onClick={() => voteUp.mutate()}
-            >
-              <span className="icon">
-                <FontAwesomeIcon icon={faArrowUp} />
-              </span>
-              <span>Vote up</span>
-            </button>
-            <button
-              className="button"
-              disabled={voteDown.status === "loading"}
-              onClick={() => voteDown.mutate()}
-            >
-              <span className="icon">
-                <FontAwesomeIcon icon={faArrowDown} />
-              </span>
-              <span>Vote down</span>
-            </button>
-          </CardSpacer>
-        </div>
-      </div>
-    </div>
+    <Card>
+      <CardMedia component="img" height={300} image={url} alt="cat" />
+      <CardContent>
+        <Typography>Score: {score}</Typography>
+      </CardContent>
+      <CardActions>
+        <ButtonGroup variant="outlined">
+          <Button
+            aria-label={`Upvote cat ${id}`}
+            disabled={voteUp.status === "loading"}
+            onClick={() => voteUp.mutate()}
+            startIcon={<ArrowUpwardIcon />}
+          >
+            Upvote
+          </Button>
+          <Button
+            aria-label={`Downvote cat ${id}`}
+            disabled={voteUp.status === "loading"}
+            onClick={() => voteDown.mutate()}
+            startIcon={<ArrowDownwardIcon />}
+          >
+            Downvote
+          </Button>
+        </ButtonGroup>
+        <IconButton
+          onClick={() => favouriteMutation.mutate()}
+          color="error"
+          aria-label={
+            favourite ? `Unfavourite cat ${id}` : `Favourite cat ${id}`
+          }
+        >
+          {favourite ? <FavoriteBorderIcon /> : <FavoriteIcon />}
+        </IconButton>
+      </CardActions>
+    </Card>
   );
 };
 
