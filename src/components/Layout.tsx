@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { Link } from "react-router-dom";
+import AppBarLink from "./AppBarLink";
 import {
   AppBar,
   Container,
@@ -8,6 +8,7 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
+import PetsIcon from "@mui/icons-material/Pets";
 
 const LoadingIndicator = () => <div>Loading!</div>;
 
@@ -17,10 +18,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => (
   <>
     <AppBar position="sticky">
       <Toolbar>
-        <Stack direction="row" spacing={2}>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <PetsIcon />
           <Typography variant="h6">Cats!</Typography>
-          <Link to="/">My Cats</Link>
-          <Link to="/upload">Upload a cat</Link>
+          <AppBarLink to="/" name="My Cats" />
+          <AppBarLink to="/upload" name="Upload a cat" />
         </Stack>
       </Toolbar>
     </AppBar>
