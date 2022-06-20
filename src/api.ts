@@ -9,7 +9,7 @@ type ApiQueryParam = string;
 type ApiRequestBody = "JSON";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-type Method<T> = { type: "METHOD"; data: ApiMethod };
+type Method<T = void> = { type: "METHOD"; data: ApiMethod };
 type Path<S> = { type: "PATH"; data: ApiPath; next: S };
 type Or<S, T> = { type: "OR"; next: [S, T] };
 type Capture<S> = { type: "CAPTURE"; data: ApiCapture; next: S };
@@ -27,11 +27,15 @@ type Body<T, S> = {
   next: S;
 };
 
-// TODO: Make method type parameter optional
-
 export const get = <T>(): Method<T> => ({ type: "METHOD", data: "GET" });
-export const post = <T>(): Method<T> => ({ type: "METHOD", data: "POST" });
-export const delete_ = <T>(): Method<T> => ({ type: "METHOD", data: "DELETE" });
+export const post = <T = void>(): Method<T> => ({
+  type: "METHOD",
+  data: "POST",
+});
+export const delete_ = <T = void>(): Method<T> => ({
+  type: "METHOD",
+  data: "DELETE",
+});
 
 export const path =
   (url: ApiPath) =>

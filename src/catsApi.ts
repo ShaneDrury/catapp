@@ -44,11 +44,8 @@ export const api = combine(
       combine(
         path("favourites"),
         or(
-          or(
-            get<Favourite[]>(),
-            combine(capture(":favouriteId"), delete_<undefined>())
-          ),
-          combine(body<{ image_id: string }>("JSON"), post<undefined>())
+          or(get<Favourite[]>(), combine(capture(":favouriteId"), delete_())),
+          combine(body<{ image_id: string }>("JSON"), post())
         )
       )
     ),
