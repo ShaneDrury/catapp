@@ -232,7 +232,7 @@ export function getClientHandlers<A extends AnyApi>(
           url: path,
           method: a.data,
           queryParams,
-          headers: { "Content-type": "application/json", ...headers },
+          headers,
           body,
         });
         return response.json;

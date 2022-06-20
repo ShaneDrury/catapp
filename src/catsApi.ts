@@ -24,36 +24,43 @@ import {
 // where 'newline' is 'Or'
 // would help with unpacking as a top level array
 
-interface ApiRequest {
-  url: string;
-  method?: string;
-  body?: {};
-  queryParams?: {};
-}
-
 export const BASE_URL = "https://api.thecatapi.com/v1";
+
+// TODO: Probably add page numbers for votes, as these go > 100 easily
 
 export const api = combine(
   header("x-api-key"),
-  or(
+  combine(
+    header("Content-type"),
     or(
-      combine(
-        path("images"),
-        combine(queryParam<number>("limit"), get<Cat[]>())
-      ),
-      combine(
-        path("favourites"),
-        or(
-          or(get<Favourite[]>(), combine(capture(":favouriteId"), delete_())),
-          combine(body<{ image_id: string }>("JSON"), post())
+      or(
+        combine(
+          path("images"),
+          combine(queryParam<number>("limit"), get<Cat[]>())
+        ),
+        combine(
+          path("favourites"),
+          or(
+            or(get<Favourite[]>(), combine(capture(":favouriteId"), delete_())),
+            combine(body<{ image_id: string }>("JSON"), post())
+          )
         )
-      )
-    ),
-    or(
-      combine(path("votes"), get<Vote[]>()),
-      combine(
-        path("images"),
-        combine(path("upload"), post<{ message: string }>())
+      ),
+      or(
+        combine(
+          path("votes"),
+          or(
+            get<Vote[]>(),
+            or(
+              combine(body<{ image_id: string; value: 1 }>("JSON"), post()),
+              combine(body<{ image_id: string; value: 0 }>("JSON"), post())
+            )
+          )
+        ),
+        combine(
+          path("images"),
+          combine(path("upload"), post<{ message: string }>())
+        )
       )
     )
   )
@@ -64,8 +71,8 @@ const result = getClientHandlers(api, BASE_URL, {}, {}, null);
 export const makeApiCalls = (apiKey: string) => {
   const [
     [getAllImages, [[getAllFavourites, deleteFavourite], postFavourite]],
-    [getAllVotes, postCat],
-  ] = result(apiKey);
+    [[getAllVotes, [voteUp, voteDown]], postCat],
+  ] = result(apiKey)("application/json");
   return {
     getAllImages,
     getAllFavourites,
@@ -73,6 +80,8 @@ export const makeApiCalls = (apiKey: string) => {
     getAllVotes,
     postFavourite,
     postCat,
+    voteUp,
+    voteDown,
   };
 };
 
@@ -114,60 +123,20 @@ export class CatsApi {
     return getAllVotes();
   };
 
-  voteUp = (catId: string) =>
-    this._makeApiRequest({
-      url: "votes",
-      method: "POST",
-      body: {
-        image_id: catId,
-        value: 1,
-      },
-    });
+  voteUp = (catId: string) => {
+    const { voteUp } = makeApiCalls(this.apiKey);
+    return voteUp({
+      image_id: catId,
+      value: 1,
+    })();
+  };
 
-  voteDown = (catId: string) =>
-    this._makeApiRequest({
-      url: "votes",
-      method: "POST",
-      body: {
-        image_id: catId,
-        value: 0,
-      },
-    });
-
-  private _makeApiRequest = async ({
-    url,
-    method = "GET",
-    body,
-    queryParams = {},
-  }: ApiRequest): Promise<unknown> => {
-    const jsonBody = JSON.stringify(body);
-    let items: unknown[] = [];
-    let page = 0;
-
-    while (true) {
-      const response = await runRequest({
-        url: `${BASE_URL}/${url}`,
-        method,
-        body: jsonBody,
-        queryParams: { ...queryParams, page: page.toString() },
-        headers: {
-          "x-api-key": this.apiKey,
-          "Content-type": "application/json",
-        },
-      });
-      const totalCount = parseInt(
-        response.headers.get("pagination-count") || "0",
-        10
-      );
-
-      items = items.concat(response.json);
-      page += 1;
-      if (items.length >= totalCount) {
-        break;
-      }
-    }
-
-    return items;
+  voteDown = (catId: string) => {
+    const { voteDown } = makeApiCalls(this.apiKey);
+    return voteDown({
+      image_id: catId,
+      value: 0,
+    })();
   };
 
   private _makeRequest = (url: string, method = "GET", body: FormData | null) =>

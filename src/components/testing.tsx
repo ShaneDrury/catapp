@@ -31,5 +31,5 @@ export const [
     mockAllImages,
     [[mockAllFavourites, mockDeleteFavourite], mockPostFavourite],
   ],
-  [mockAllVotes, mockUploadCat],
+  [[mockAllVotes, mockVoteUp], mockUploadCat],
 ] = getMockHandlers(api, BASE_URL);
