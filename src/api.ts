@@ -4,6 +4,7 @@ type ApiPath = string;
 type ApiCapture = string;
 type ApiMethod = "GET" | "POST";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type Method<T> = { type: "METHOD"; data: ApiMethod };
 type Path<S> = { type: "PATH"; data: ApiPath; next: S };
 type Or<S, T> = { type: "OR"; next: [S, T] };
@@ -38,7 +39,8 @@ type Paths<R> = R extends Path<infer N>
   ? Paths<N>
   : R extends Or<infer N, infer M>
   ? [Paths<N>, Paths<M>]
-  : R extends Method<infer T>
+  : // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  R extends Method<infer T>
   ? string
   : R extends Capture<infer S>
   ? (c: string) => Paths<S>
