@@ -91,65 +91,9 @@ export const makeApiCalls = (apiKey: string) => {
   };
 };
 
-export class CatsApi {
-  apiKey: string;
-
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
-  }
-
-  uploaded = (): Promise<Cat[]> => {
-    const { getAllImages } = makeApiCalls(this.apiKey);
-    return getAllImages(100)();
-  };
-
-  newCat = (catData: File) => {
-    const { uploadCat } = makeApiCalls(this.apiKey);
-    const catPicture = new FormData();
-    catPicture.append("file", catData);
-    return uploadCat(catPicture)();
-  };
-
-  favourites = (): Promise<Favourite[]> => {
-    const { getAllFavourites } = makeApiCalls(this.apiKey);
-    return getAllFavourites();
-  };
-
-  favouriteCat = (catId: string) => {
-    const { postFavourite } = makeApiCalls(this.apiKey);
-    return postFavourite({ image_id: catId })();
-  };
-
-  unfavouriteCat = (favouriteId: string) => {
-    const { deleteFavourite } = makeApiCalls(this.apiKey);
-    return deleteFavourite(favouriteId)();
-  };
-
-  votes = (): Promise<Vote[]> => {
-    const { getAllVotes } = makeApiCalls(this.apiKey);
-    return getAllVotes();
-  };
-
-  voteUp = (catId: string) => {
-    const { voteUp } = makeApiCalls(this.apiKey);
-    return voteUp({
-      image_id: catId,
-      value: 1,
-    })();
-  };
-
-  voteDown = (catId: string) => {
-    const { voteDown } = makeApiCalls(this.apiKey);
-    return voteDown({
-      image_id: catId,
-      value: 0,
-    })();
-  };
-}
-
 export const apiFromKey = () => {
   const catsDataEl = document.getElementById("cats-api");
 
   const apiKey = catsDataEl && catsDataEl.dataset.key;
-  return new CatsApi(apiKey || "test-api-key");
+  return makeApiCalls(apiKey || "test-api-key");
 };

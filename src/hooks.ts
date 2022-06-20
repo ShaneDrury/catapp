@@ -1,12 +1,12 @@
 import { Favourite, Vote, Cat as ICat } from "./types";
-import { CatsApi } from "./catsApi";
+import { makeApiCalls } from "./catsApi";
 import { groupBy } from "./utils";
 import { useMutation, useQuery, useQueryClient } from "react-query";
 import React from "react";
 
-export const CatApiContext = React.createContext<CatsApi | undefined>(
-  undefined
-);
+export const CatApiContext = React.createContext<
+  ReturnType<typeof makeApiCalls> | undefined
+>(undefined);
 
 export const useCatApi = () => {
   const api = React.useContext(CatApiContext);
@@ -18,14 +18,14 @@ export const useCatApi = () => {
 
 export const useCats = () => {
   const api = useCatApi();
-  return useQuery<ICat[], string>("cats", api.uploaded);
+  return useQuery<ICat[], string>("cats", api.getAllImages(100));
 };
 
 export const useFavourites = () => {
   const api = useCatApi();
   const { data, ...rest } = useQuery<Favourite[], string>(
     "favourites",
-    api.favourites
+    api.getAllFavourites
   );
   const groupedFavourites = React.useMemo(
     () =>
@@ -41,7 +41,7 @@ export const useFavourites = () => {
 
 export const useVotes = () => {
   const api = useCatApi();
-  const { data, ...rest } = useQuery<Vote[], string>("votes", api.votes);
+  const { data, ...rest } = useQuery<Vote[], string>("votes", api.getAllVotes);
   const groupedVotes = React.useMemo(
     () => data && groupBy(data, (vote) => vote.image_id),
     [data]
@@ -51,21 +51,32 @@ export const useVotes = () => {
 
 export const useUploadCat = () => {
   const api = useCatApi();
-  return useMutation<unknown, { message: string }, File>(api.newCat);
+  return useMutation<unknown, { message: string }, File>((catData: File) => {
+    const catPicture = new FormData();
+    catPicture.append("file", catData);
+    return api.uploadCat(catPicture)();
+  });
 };
 
 export const useVoteDown = (id: string) => {
   const api = useCatApi();
   const queryClient = useQueryClient();
-  return useMutation(() => api.voteDown(id), {
-    onSuccess: () => queryClient.invalidateQueries("votes"),
-  });
+  return useMutation(
+    () =>
+      api.voteDown({
+        image_id: id,
+        value: 0,
+      })(),
+    {
+      onSuccess: () => queryClient.invalidateQueries("votes"),
+    }
+  );
 };
 
 export const useVoteUp = (id: string) => {
   const api = useCatApi();
   const queryClient = useQueryClient();
-  return useMutation(() => api.voteUp(id), {
+  return useMutation(() => api.voteUp({ image_id: id, value: 1 })(), {
     onSuccess: () => queryClient.invalidateQueries("votes"),
   });
 };
@@ -76,9 +87,9 @@ export const useFavourite = (id: string, favourite: Favourite) => {
   return useMutation(
     () => {
       if (favourite) {
-        return api.unfavouriteCat(favourite.id);
+        return api.deleteFavourite(favourite.id)();
       } else {
-        return api.favouriteCat(id);
+        return api.postFavourite({ image_id: id })();
       }
     },
     {
