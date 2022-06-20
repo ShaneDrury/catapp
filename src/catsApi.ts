@@ -1,6 +1,7 @@
 import { Cat, Favourite, Vote } from "./types";
 import { runRequest } from "./request";
 import {
+  body,
   combine,
   get,
   getClientHandlers,
@@ -21,6 +22,15 @@ import {
 // where 'newline' is 'Or'
 // would help with unpacking as a top level array
 
+interface ApiRequest {
+  url: string;
+  method?: string;
+  body?: {};
+  queryParams?: {};
+}
+
+export const BASE_URL = "https://api.thecatapi.com/v1";
+
 export const api = combine(
   header("x-api-key"),
   or(
@@ -29,7 +39,13 @@ export const api = combine(
         path("images"),
         combine(queryParam<number>("limit"), get<Cat[]>())
       ),
-      combine(path("favourites"), get<Favourite[]>())
+      combine(
+        path("favourites"),
+        or(
+          get<Favourite[]>(),
+          combine(body<{ image_id: string }>("JSON"), post<undefined>())
+        )
+      )
     ),
     or(
       combine(path("votes"), get<Vote[]>()),
@@ -41,25 +57,19 @@ export const api = combine(
   )
 );
 
-interface ApiRequest {
-  url: string;
-  method?: string;
-  body?: {};
-  queryParams?: {};
-}
-
-export const BASE_URL = "https://api.thecatapi.com/v1";
-
-const result = getClientHandlers(api, BASE_URL, {}, {});
+const result = getClientHandlers(api, BASE_URL, {}, {}, null);
 
 export const makeApiCalls = (apiKey: string) => {
-  const [[getAllImages, getAllFavourites], [getAllVotes, postFavourite]] =
-    result(apiKey);
+  const [
+    [getAllImages, [getAllFavourites, postFavourite]],
+    [getAllVotes, postCat],
+  ] = result(apiKey);
   return {
     getAllImages,
     getAllFavourites,
     getAllVotes,
     postFavourite,
+    postCat,
   };
 };
 
@@ -81,24 +91,27 @@ export class CatsApi {
     return this._makeRequest("images/upload", "POST", catPicture);
   };
 
-  favourites = (): Promise<Favourite[]> =>
-    this._makeApiRequest({ url: "favourites" }) as Promise<Favourite[]>;
+  favourites = (): Promise<Favourite[]> => {
+    const { getAllFavourites } = makeApiCalls(this.apiKey);
+    return getAllFavourites();
+  };
 
-  favouriteCat = (catId: string) =>
-    this._makeApiRequest({
-      url: "favourites",
-      method: "POST",
-      body: { image_id: catId },
-    });
+  favouriteCat = (catId: string) => {
+    const { postFavourite } = makeApiCalls(this.apiKey);
+    return postFavourite({ image_id: catId })();
+  };
 
-  unfavouriteCat = (favouriteId: string) =>
-    this._makeApiRequest({
+  unfavouriteCat = (favouriteId: string) => {
+    return this._makeApiRequest({
       url: `favourites/${favouriteId}`,
       method: "DELETE",
     });
+  };
 
-  votes = (): Promise<Vote[]> =>
-    this._makeApiRequest({ url: "votes" }) as Promise<Vote[]>;
+  votes = (): Promise<Vote[]> => {
+    const { getAllVotes } = makeApiCalls(this.apiKey);
+    return getAllVotes();
+  };
 
   voteUp = (catId: string) =>
     this._makeApiRequest({
@@ -156,7 +169,7 @@ export class CatsApi {
     return items;
   };
 
-  private _makeRequest = (url: string, method = "GET", body?: FormData) =>
+  private _makeRequest = (url: string, method = "GET", body: FormData | null) =>
     runRequest({
       url: `${BASE_URL}/${url}`,
       method,

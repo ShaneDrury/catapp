@@ -63,7 +63,7 @@ const Cat = ({ id, url, favourite, votes = [] }: CatProps) => {
             favourite ? `Unfavourite cat ${id}` : `Favourite cat ${id}`
           }
         >
-          {favourite ? <FavoriteBorderIcon /> : <FavoriteIcon />}
+          {favourite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
         </IconButton>
       </CardActions>
     </Card>

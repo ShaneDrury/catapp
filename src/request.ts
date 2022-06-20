@@ -1,7 +1,7 @@
 interface Request {
   url: string;
   method?: string;
-  body?: BodyInit;
+  body: BodyInit | null;
   queryParams?: { [key: string]: string };
   headers?: HeadersInit;
 }

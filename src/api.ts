@@ -3,9 +3,10 @@ import { runRequest } from "./request";
 
 type ApiPath = string;
 type ApiCapture = string;
-type ApiMethod = "GET" | "POST";
+type ApiMethod = "GET" | "POST" | "DELETE";
 type ApiHeader = string;
 type ApiQueryParam = string;
+type ApiRequestBody = "JSON";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type Method<T> = { type: "METHOD"; data: ApiMethod };
@@ -19,11 +20,18 @@ type QueryParam<S, T = unknown> = {
   data: ApiQueryParam;
   next: S;
 };
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type Body<T, S> = {
+  type: "BODY";
+  requestBodyType: ApiRequestBody;
+  next: S;
+};
 
 // TODO: Make method type parameter optional
 
 export const get = <T>(): Method<T> => ({ type: "METHOD", data: "GET" });
 export const post = <T>(): Method<T> => ({ type: "METHOD", data: "POST" });
+export const delete_ = <T>(): Method<T> => ({ type: "METHOD", data: "DELETE" });
 
 export const path =
   (url: ApiPath) =>
@@ -57,6 +65,14 @@ export const queryParam =
     next,
   });
 
+export const body =
+  <T>(requestBody: ApiRequestBody) =>
+  <A>(next: A): Body<T, A> => ({
+    type: "BODY",
+    requestBodyType: requestBody,
+    next,
+  });
+
 export const or = <S, T>(x1: S, x2: T): Or<S, T> => ({
   type: "OR",
   next: [x1, x2],
@@ -77,6 +93,9 @@ type Paths<R> = R extends Path<infer N>
   ? Paths<S>
   : R extends QueryParam<infer S>
   ? Paths<S>
+  : // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  R extends Body<infer T, infer S>
+  ? Paths<S>
   : never;
 
 type AnyApi =
@@ -85,7 +104,8 @@ type AnyApi =
   | Path<any>
   | Or<any, any>
   | Header<any>
-  | QueryParam<any>;
+  | QueryParam<any>
+  | Body<any, any>;
 
 function getPathsAcc<A extends AnyApi>(a: A, acc: string): Paths<typeof a> {
   switch (a.type) {
@@ -133,11 +153,15 @@ type MockHandler<R> = R extends Path<infer N>
   ? MockHandler<S>
   : R extends QueryParam<infer S>
   ? MockHandler<S>
+  : // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  R extends Body<infer T, infer S>
+  ? MockHandler<S>
   : never;
 
 const MAP_METHOD_TO_MSW = {
   GET: rest.get,
   POST: rest.post,
+  DELETE: rest.delete,
 };
 
 export function getMockHandlers<A extends AnyApi>(
@@ -186,13 +210,16 @@ type ClientHandler<R> = R extends Path<infer N>
   ? (header: string) => ClientHandler<S>
   : R extends QueryParam<infer S, infer T>
   ? (queryParam: T) => ClientHandler<S>
+  : R extends Body<infer T, infer S>
+  ? (body: T) => ClientHandler<S>
   : never;
 
 export function getClientHandlers<A extends AnyApi>(
   a: A,
   path: string,
   headers: HeadersInit,
-  queryParams: Record<string, string>
+  queryParams: Record<string, string>,
+  body: BodyInit | null
 ): ClientHandler<typeof a> {
   switch (a.type) {
     case "METHOD": {
@@ -202,6 +229,7 @@ export function getClientHandlers<A extends AnyApi>(
           method: a.data,
           queryParams,
           headers: { "Content-type": "application/json", ...headers },
+          body,
         });
         return response.json;
       }) as ClientHandler<typeof a>;
@@ -212,14 +240,15 @@ export function getClientHandlers<A extends AnyApi>(
         a.next,
         nextAcc,
         headers,
-        queryParams
+        queryParams,
+        body
       ) as ClientHandler<typeof a>;
     }
     case "OR": {
       const [l, r] = a.next;
       return [
-        getClientHandlers(l, path, headers, queryParams),
-        getClientHandlers(r, path, headers, queryParams),
+        getClientHandlers(l, path, headers, queryParams, body),
+        getClientHandlers(r, path, headers, queryParams, body),
       ] as ClientHandler<typeof a>;
     }
     case "CAPTURE": {
@@ -228,7 +257,8 @@ export function getClientHandlers<A extends AnyApi>(
           a.next,
           `${path}/${c}`,
           headers,
-          queryParams
+          queryParams,
+          body
         )) as ClientHandler<typeof a>;
     }
     case "HEADER": {
@@ -237,15 +267,32 @@ export function getClientHandlers<A extends AnyApi>(
           a.next,
           path,
           { ...headers, [a.data]: h },
-          queryParams
+          queryParams,
+          body
         )) as ClientHandler<typeof a>;
     }
     case "QUERY_PARAM": {
       return ((queryParam: any) =>
-        getClientHandlers(a.next, path, headers, {
-          ...queryParams,
-          [a.data]: queryParam.toString(),
-        })) as ClientHandler<typeof a>;
+        getClientHandlers(
+          a.next,
+          path,
+          headers,
+          {
+            ...queryParams,
+            [a.data]: queryParam.toString(),
+          },
+          body
+        )) as ClientHandler<typeof a>;
+    }
+    case "BODY": {
+      return ((reqBody: any) =>
+        getClientHandlers(
+          a.next,
+          path,
+          headers,
+          queryParams,
+          JSON.stringify(reqBody)
+        )) as ClientHandler<typeof a>;
     }
   }
 }
