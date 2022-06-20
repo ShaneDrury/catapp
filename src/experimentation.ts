@@ -2,65 +2,73 @@ type ApiPath = string;
 type ApiCapture = string;
 type ApiMethod = "GET" | "POST";
 
-type Api =
-  | { type: "PATH"; data: ApiPath; next: Api }
-  | { type: "METHOD"; data: ApiMethod }
-  | { type: "CAPTURE"; data: ApiCapture; next: Api }
-  | { type: "OR"; next: [Api, Api] };
+type Method = { type: "METHOD"; data: ApiMethod };
+type Path<S> = { type: "PATH"; data: ApiPath; next: S };
+type Or<S, T> = { type: "OR"; next: [S, T] };
+type Capture<S> = { type: "CAPTURE"; data: ApiCapture; next: S };
 
-const get = (): Api => ({ type: "METHOD", data: "GET" });
+const get = (): Method => ({ type: "METHOD", data: "GET" });
 
 const path =
   (url: ApiPath) =>
-  (next: Api): Api => ({
+  <A>(next: A): Path<A> => ({
     type: "PATH",
     data: url,
     next,
   });
 
-const or = (x1: Api, x2: Api): Api => ({
-  type: "OR",
-  next: [x1, x2],
-});
-
-const combine = (x1: (x: Api) => Api, x2: Api) => x1(x2);
 const capture =
-  (c: string) =>
-  (next: Api): Api => ({
+  (c: ApiPath) =>
+  <A>(next: A): Capture<A> => ({
     type: "CAPTURE",
     data: c,
     next,
   });
 
-type Paths<A> = A | Paths<A>[] | ((c: string) => Paths<A>);
+const or = <S, T>(x1: S, x2: T): Or<S, T> => ({
+  type: "OR",
+  next: [x1, x2],
+});
 
-// infer return type based on Api
-// somehow...
-// can do extends stuff?
+const combine = <A, B>(x1: (x: A) => B, x2: A) => x1(x2);
 
-export const getPaths = (a: Api, acc: string): Paths<string> => {
+type Paths<R> = R extends Path<infer N>
+  ? Paths<N>
+  : R extends Or<infer N, infer M>
+  ? [Paths<N>, Paths<M>]
+  : R extends Method
+  ? string
+  : R extends Capture<infer S>
+  ? (c: string) => Paths<S>
+  : never;
+
+export function getPaths<
+  A extends Method | Capture<any> | Path<any> | Or<any, any>
+>(a: A, acc: string): Paths<typeof a> {
   switch (a.type) {
     case "METHOD": {
-      return acc;
+      return acc as Paths<typeof a>;
     }
     case "PATH": {
       const nextAcc = `${acc}/${a.data}`;
-      return getPaths(a.next, nextAcc);
+      return getPaths(a.next, nextAcc) as Paths<typeof a>;
     }
     case "OR": {
       const [l, r] = a.next;
-      return [getPaths(l, acc), getPaths(r, acc)];
+      return [getPaths(l, acc), getPaths(r, acc)] as Paths<typeof a>;
     }
     case "CAPTURE": {
-      return (c: string) => getPaths(a.next, `${acc}/${c}`);
+      return ((c: string) => getPaths(a.next, `${acc}/${c}`)) as Paths<
+        typeof a
+      >;
     }
   }
-};
-
-const simple = getPaths(combine(capture(":foo"), get()), "");
-if (typeof simple === "function") {
-  console.log(simple("foo"));
 }
+
+const simpleApi = combine(capture(":foo"), get());
+const simple = getPaths(simpleApi, "");
+
+console.log({ simple: simple("bar") });
 
 export const api = combine(
   path("v1"),
@@ -70,14 +78,6 @@ export const api = combine(
   )
 );
 
-const result = getPaths(api, "");
+const [[getAllImages, getImage], getAllFavourites] = getPaths(api, "");
 
-if (typeof result === "object") {
-  const [firstTwo, getAllFavourites] = result;
-  if (typeof firstTwo === "object") {
-    const [getAllImages, getImage] = firstTwo;
-    if (typeof getImage === "function") {
-      console.log([getAllImages, getImage("001"), getAllFavourites]);
-    }
-  }
-}
+console.log([getAllImages, getImage("001"), getAllFavourites]);
