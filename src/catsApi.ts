@@ -1,5 +1,14 @@
 import { Cat, Favourite, Vote } from "./types";
 import { runRequest } from "./request";
+import { combine, get, or, path } from "./experimentation";
+
+export const api = or(
+  or(
+    combine(path("images"), get<Cat[]>()),
+    combine(path("favourites"), get<Favourite[]>())
+  ),
+  combine(path("votes"), get<Vote[]>())
+);
 
 interface ApiRequest {
   url: string;
@@ -17,12 +26,11 @@ export class CatsApi {
     this.apiKey = apiKey;
   }
 
-  uploaded = (): Promise<Cat[]> => {
-    return this._makeApiRequest({
+  uploaded = (): Promise<Cat[]> =>
+    this._makeApiRequest({
       url: "images/",
       queryParams: { limit: 100 },
     }) as Promise<Cat[]>;
-  };
 
   newCat = (catData: File) => {
     const catPicture = new FormData();
@@ -30,31 +38,27 @@ export class CatsApi {
     return this._makeRequest("images/upload", "POST", catPicture);
   };
 
-  favourites = (): Promise<Favourite[]> => {
-    return this._makeApiRequest({ url: "favourites" }) as Promise<Favourite[]>;
-  };
+  favourites = (): Promise<Favourite[]> =>
+    this._makeApiRequest({ url: "favourites" }) as Promise<Favourite[]>;
 
-  favouriteCat = (catId: string) => {
-    return this._makeApiRequest({
+  favouriteCat = (catId: string) =>
+    this._makeApiRequest({
       url: "favourites",
       method: "POST",
       body: { image_id: catId },
     });
-  };
 
-  unfavouriteCat = (favouriteId: string) => {
-    return this._makeApiRequest({
+  unfavouriteCat = (favouriteId: string) =>
+    this._makeApiRequest({
       url: `favourites/${favouriteId}`,
       method: "DELETE",
     });
-  };
 
-  votes = (): Promise<Vote[]> => {
-    return this._makeApiRequest({ url: "votes" }) as Promise<Vote[]>;
-  };
+  votes = (): Promise<Vote[]> =>
+    this._makeApiRequest({ url: "votes" }) as Promise<Vote[]>;
 
-  voteUp = (catId: string) => {
-    return this._makeApiRequest({
+  voteUp = (catId: string) =>
+    this._makeApiRequest({
       url: "votes",
       method: "POST",
       body: {
@@ -62,10 +66,9 @@ export class CatsApi {
         value: 1,
       },
     });
-  };
 
-  voteDown = (catId: string) => {
-    return this._makeApiRequest({
+  voteDown = (catId: string) =>
+    this._makeApiRequest({
       url: "votes",
       method: "POST",
       body: {
@@ -73,7 +76,6 @@ export class CatsApi {
         value: 0,
       },
     });
-  };
 
   private _makeApiRequest = async ({
     url,
@@ -111,14 +113,13 @@ export class CatsApi {
     return items;
   };
 
-  private _makeRequest = (url: string, method = "GET", body?: FormData) => {
-    return runRequest({
+  private _makeRequest = (url: string, method = "GET", body?: FormData) =>
+    runRequest({
       url: `${BASE_URL}/${url}`,
       method,
       headers: { "x-api-key": this.apiKey },
       body,
     });
-  };
 }
 
 export const apiFromKey = () => {
