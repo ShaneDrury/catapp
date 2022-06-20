@@ -2,7 +2,9 @@ import { Cat, Favourite, Vote } from "./types";
 import { runRequest } from "./request";
 import {
   body,
+  capture,
   combine,
+  delete_,
   get,
   getClientHandlers,
   header,
@@ -42,7 +44,10 @@ export const api = combine(
       combine(
         path("favourites"),
         or(
-          get<Favourite[]>(),
+          or(
+            get<Favourite[]>(),
+            combine(capture(":favouriteId"), delete_<undefined>())
+          ),
           combine(body<{ image_id: string }>("JSON"), post<undefined>())
         )
       )
@@ -61,12 +66,13 @@ const result = getClientHandlers(api, BASE_URL, {}, {}, null);
 
 export const makeApiCalls = (apiKey: string) => {
   const [
-    [getAllImages, [getAllFavourites, postFavourite]],
+    [getAllImages, [[getAllFavourites, deleteFavourite], postFavourite]],
     [getAllVotes, postCat],
   ] = result(apiKey);
   return {
     getAllImages,
     getAllFavourites,
+    deleteFavourite,
     getAllVotes,
     postFavourite,
     postCat,
@@ -102,10 +108,8 @@ export class CatsApi {
   };
 
   unfavouriteCat = (favouriteId: string) => {
-    return this._makeApiRequest({
-      url: `favourites/${favouriteId}`,
-      method: "DELETE",
-    });
+    const { deleteFavourite } = makeApiCalls(this.apiKey);
+    return deleteFavourite(favouriteId)();
   };
 
   votes = (): Promise<Vote[]> => {
