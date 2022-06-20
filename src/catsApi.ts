@@ -1,5 +1,4 @@
 import { Cat, Favourite, Vote } from "./types";
-import { runRequest } from "./request";
 import {
   body,
   capture,
@@ -30,23 +29,26 @@ export const BASE_URL = "https://api.thecatapi.com/v1";
 
 export const api = combine(
   header("x-api-key"),
-  combine(
-    header("Content-type"),
-    or(
+  or(
+    combine(
+      header("Content-type"),
       or(
-        combine(
-          path("images"),
-          combine(queryParam<number>("limit"), get<Cat[]>())
-        ),
-        combine(
-          path("favourites"),
-          or(
-            or(get<Favourite[]>(), combine(capture(":favouriteId"), delete_())),
-            combine(body<{ image_id: string }>("JSON"), post())
+        or(
+          combine(
+            path("images"),
+            combine(queryParam<number>("limit"), get<Cat[]>())
+          ),
+          combine(
+            path("favourites"),
+            or(
+              or(
+                get<Favourite[]>(),
+                combine(capture(":favouriteId"), delete_())
+              ),
+              combine(body<{ image_id: string }>("JSON"), post())
+            )
           )
-        )
-      ),
-      or(
+        ),
         combine(
           path("votes"),
           or(
@@ -56,30 +58,34 @@ export const api = combine(
               combine(body<{ image_id: string; value: 0 }>("JSON"), post())
             )
           )
-        ),
-        combine(
-          path("images"),
-          combine(path("upload"), post<{ message: string }>())
         )
+      )
+    ),
+    combine(
+      path("images"),
+      combine(
+        path("upload"),
+        combine(body<FormData>(), post<{ message: string }>())
       )
     )
   )
 );
 
-const result = getClientHandlers(api, BASE_URL, {}, {}, null);
+const allEndpoints = getClientHandlers(api, BASE_URL, {}, {}, null);
 
 export const makeApiCalls = (apiKey: string) => {
+  const [jsonEndpoints, uploadCat] = allEndpoints(apiKey);
   const [
     [getAllImages, [[getAllFavourites, deleteFavourite], postFavourite]],
-    [[getAllVotes, [voteUp, voteDown]], postCat],
-  ] = result(apiKey)("application/json");
+    [getAllVotes, [voteUp, voteDown]],
+  ] = jsonEndpoints("application/json");
   return {
     getAllImages,
     getAllFavourites,
     deleteFavourite,
     getAllVotes,
     postFavourite,
-    postCat,
+    uploadCat,
     voteUp,
     voteDown,
   };
@@ -98,9 +104,10 @@ export class CatsApi {
   };
 
   newCat = (catData: File) => {
+    const { uploadCat } = makeApiCalls(this.apiKey);
     const catPicture = new FormData();
     catPicture.append("file", catData);
-    return this._makeRequest("images/upload", "POST", catPicture);
+    return uploadCat(catPicture)();
   };
 
   favourites = (): Promise<Favourite[]> => {
@@ -138,14 +145,6 @@ export class CatsApi {
       value: 0,
     })();
   };
-
-  private _makeRequest = (url: string, method = "GET", body: FormData | null) =>
-    runRequest({
-      url: `${BASE_URL}/${url}`,
-      method,
-      headers: { "x-api-key": this.apiKey },
-      body,
-    });
 }
 
 export const apiFromKey = () => {

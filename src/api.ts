@@ -6,7 +6,7 @@ type ApiCapture = string;
 type ApiMethod = "GET" | "POST" | "DELETE";
 type ApiHeader = string;
 type ApiQueryParam = string;
-type ApiRequestBody = "JSON";
+type ApiRequestBody = "JSON" | undefined;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type Method<T = void> = { type: "METHOD"; data: ApiMethod };
@@ -23,7 +23,7 @@ type QueryParam<S, T = unknown> = {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type Body<T, S> = {
   type: "BODY";
-  requestBodyType: ApiRequestBody;
+  requestBodyType?: ApiRequestBody;
   next: S;
 };
 
@@ -70,7 +70,7 @@ export const queryParam =
   });
 
 export const body =
-  <T>(requestBody: ApiRequestBody) =>
+  <T>(requestBody?: ApiRequestBody) =>
   <A>(next: A): Body<T, A> => ({
     type: "BODY",
     requestBodyType: requestBody,
@@ -295,7 +295,7 @@ export function getClientHandlers<A extends AnyApi>(
           path,
           headers,
           queryParams,
-          JSON.stringify(reqBody)
+          a.requestBodyType === "JSON" ? JSON.stringify(reqBody) : reqBody
         )) as ClientHandler<typeof a>;
     }
   }
