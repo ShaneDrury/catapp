@@ -42,7 +42,7 @@ type Paths<R> = R extends Path<infer N>
   ? (c: string) => Paths<S>
   : never;
 
-export function getPaths<
+function getPathsAcc<
   A extends Method | Capture<any> | Path<any> | Or<any, any>
 >(a: A, acc: string): Paths<typeof a> {
   switch (a.type) {
@@ -51,22 +51,28 @@ export function getPaths<
     }
     case "PATH": {
       const nextAcc = `${acc}/${a.data}`;
-      return getPaths(a.next, nextAcc) as Paths<typeof a>;
+      return getPathsAcc(a.next, nextAcc) as Paths<typeof a>;
     }
     case "OR": {
       const [l, r] = a.next;
-      return [getPaths(l, acc), getPaths(r, acc)] as Paths<typeof a>;
+      return [getPathsAcc(l, acc), getPathsAcc(r, acc)] as Paths<typeof a>;
     }
     case "CAPTURE": {
-      return ((c: string) => getPaths(a.next, `${acc}/${c}`)) as Paths<
+      return ((c: string) => getPathsAcc(a.next, `${acc}/${c}`)) as Paths<
         typeof a
       >;
     }
   }
 }
 
+export const getPaths = <
+  A extends Method | Capture<any> | Path<any> | Or<any, any>
+>(
+  a: A
+) => getPathsAcc(a, "");
+
 const simpleApi = combine(capture(":foo"), get());
-const simple = getPaths(simpleApi, "");
+const simple = getPaths(simpleApi);
 
 console.log({ simple: simple("bar") });
 
@@ -78,6 +84,6 @@ export const api = combine(
   )
 );
 
-const [[getAllImages, getImage], getAllFavourites] = getPaths(api, "");
+const [[getAllImages, getImage], getAllFavourites] = getPaths(api);
 
 console.log([getAllImages, getImage("001"), getAllFavourites]);
