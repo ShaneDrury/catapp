@@ -1,14 +1,24 @@
 import { rest, RestHandler } from "msw";
+import { runRequest } from "./request";
 
 type ApiPath = string;
 type ApiCapture = string;
 type ApiMethod = "GET" | "POST";
+type ApiHeader = string;
+type ApiQueryParam = string;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type Method<T> = { type: "METHOD"; data: ApiMethod };
 type Path<S> = { type: "PATH"; data: ApiPath; next: S };
 type Or<S, T> = { type: "OR"; next: [S, T] };
 type Capture<S> = { type: "CAPTURE"; data: ApiCapture; next: S };
+type Header<S> = { type: "HEADER"; data: ApiHeader; next: S };
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type QueryParam<S, T = unknown> = {
+  type: "QUERY_PARAM";
+  data: ApiQueryParam;
+  next: S;
+};
 
 // TODO: Make method type parameter optional
 
@@ -31,6 +41,22 @@ export const capture =
     next,
   });
 
+export const header =
+  (name: string) =>
+  <A>(next: A): Header<A> => ({
+    type: "HEADER",
+    data: name,
+    next,
+  });
+
+export const queryParam =
+  <T>(name: string) =>
+  <A>(next: A): QueryParam<A, T> => ({
+    type: "QUERY_PARAM",
+    data: name,
+    next,
+  });
+
 export const or = <S, T>(x1: S, x2: T): Or<S, T> => ({
   type: "OR",
   next: [x1, x2],
@@ -47,9 +73,19 @@ type Paths<R> = R extends Path<infer N>
   ? string
   : R extends Capture<infer S>
   ? (c: string) => Paths<S>
+  : R extends Header<infer S>
+  ? Paths<S>
+  : R extends QueryParam<infer S>
+  ? Paths<S>
   : never;
 
-type AnyApi = Method<any> | Capture<any> | Path<any> | Or<any, any>;
+type AnyApi =
+  | Method<any>
+  | Capture<any>
+  | Path<any>
+  | Or<any, any>
+  | Header<any>
+  | QueryParam<any>;
 
 function getPathsAcc<A extends AnyApi>(a: A, acc: string): Paths<typeof a> {
   switch (a.type) {
@@ -68,6 +104,9 @@ function getPathsAcc<A extends AnyApi>(a: A, acc: string): Paths<typeof a> {
       return ((c: string) => getPathsAcc(a.next, `${acc}/${c}`)) as Paths<
         typeof a
       >;
+    }
+    default: {
+      return getPathsAcc(a.next, acc) as Paths<typeof a>;
     }
   }
 }
@@ -90,6 +129,10 @@ type MockHandler<R> = R extends Path<infer N>
   ? (s: Response<T>) => RestHandler
   : R extends Capture<infer S>
   ? (c: string) => MockHandler<S>
+  : R extends Header<infer S>
+  ? MockHandler<S>
+  : R extends QueryParam<infer S>
+  ? MockHandler<S>
   : never;
 
 const MAP_METHOD_TO_MSW = {
@@ -124,6 +167,85 @@ export function getMockHandlers<A extends AnyApi>(
     case "CAPTURE": {
       return ((c: string) =>
         getMockHandlers(a.next, `${path}/${c}`)) as MockHandler<typeof a>;
+    }
+    default: {
+      return getMockHandlers(a.next, path) as MockHandler<typeof a>;
+    }
+  }
+}
+
+type ClientHandler<R> = R extends Path<infer N>
+  ? ClientHandler<N>
+  : R extends Or<infer N, infer M>
+  ? [ClientHandler<N>, ClientHandler<M>]
+  : R extends Method<infer T>
+  ? () => Promise<T>
+  : R extends Capture<infer S>
+  ? (c: string) => ClientHandler<S>
+  : R extends Header<infer S>
+  ? (header: string) => ClientHandler<S>
+  : R extends QueryParam<infer S, infer T>
+  ? (queryParam: T) => ClientHandler<S>
+  : never;
+
+export function getClientHandlers<A extends AnyApi>(
+  a: A,
+  path: string,
+  headers: HeadersInit,
+  queryParams: Record<string, string>
+): ClientHandler<typeof a> {
+  switch (a.type) {
+    case "METHOD": {
+      return (async () => {
+        const response = await runRequest({
+          url: path,
+          method: a.data,
+          queryParams,
+          headers: { "Content-type": "application/json", ...headers },
+        });
+        return response.json;
+      }) as ClientHandler<typeof a>;
+    }
+    case "PATH": {
+      const nextAcc = `${path}/${a.data}`;
+      return getClientHandlers(
+        a.next,
+        nextAcc,
+        headers,
+        queryParams
+      ) as ClientHandler<typeof a>;
+    }
+    case "OR": {
+      const [l, r] = a.next;
+      return [
+        getClientHandlers(l, path, headers, queryParams),
+        getClientHandlers(r, path, headers, queryParams),
+      ] as ClientHandler<typeof a>;
+    }
+    case "CAPTURE": {
+      return ((c: string) =>
+        getClientHandlers(
+          a.next,
+          `${path}/${c}`,
+          headers,
+          queryParams
+        )) as ClientHandler<typeof a>;
+    }
+    case "HEADER": {
+      return ((h: string) =>
+        getClientHandlers(
+          a.next,
+          path,
+          { ...headers, [a.data]: h },
+          queryParams
+        )) as ClientHandler<typeof a>;
+    }
+    case "QUERY_PARAM": {
+      return ((queryParam: any) =>
+        getClientHandlers(a.next, path, headers, {
+          ...queryParams,
+          [a.data]: queryParam.toString(),
+        })) as ClientHandler<typeof a>;
     }
   }
 }

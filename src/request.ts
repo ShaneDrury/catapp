@@ -3,16 +3,16 @@ interface Request {
   method?: string;
   body?: BodyInit;
   queryParams?: { [key: string]: string };
-  headers?: { [key: string]: string };
+  headers?: HeadersInit;
 }
 
-export const runRequest = async ({
+export const runRequest = async <T>({
   url,
   method = "GET",
   body,
   queryParams = {},
   headers,
-}: Request) => {
+}: Request): Promise<{ json: T; headers: Headers }> => {
   const searchParams = new URLSearchParams();
   Object.entries(queryParams).forEach(([key, value]) => {
     searchParams.append(key, value);

@@ -1,17 +1,42 @@
 import { Cat, Favourite, Vote } from "./types";
 import { runRequest } from "./request";
-import { combine, get, or, path, post } from "./api";
+import {
+  combine,
+  get,
+  getClientHandlers,
+  header,
+  or,
+  path,
+  post,
+  queryParam,
+} from "./api";
 
-export const api = or(
+// TODO: Implement with classes to allow e.g.
+// const api2 = apiDsl((p, cap) => {
+//   p("images").get<Cat[]>();
+//   p("favourites").get<Favourite[]>().or(cap(":favouriteId").get<Favourite>());
+//   p("votes").get<Vote[]>();
+//   p("images").p("upload").post<{ message: string }>();
+// });
+// where 'newline' is 'Or'
+// would help with unpacking as a top level array
+
+export const api = combine(
+  header("x-api-key"),
   or(
-    combine(path("images"), get<Cat[]>()),
-    combine(path("favourites"), get<Favourite[]>())
-  ),
-  or(
-    combine(path("votes"), get<Vote[]>()),
-    combine(
-      path("images"),
-      combine(path("upload"), post<{ message: string }>())
+    or(
+      combine(
+        path("images"),
+        combine(queryParam<number>("limit"), get<Cat[]>())
+      ),
+      combine(path("favourites"), get<Favourite[]>())
+    ),
+    or(
+      combine(path("votes"), get<Vote[]>()),
+      combine(
+        path("images"),
+        combine(path("upload"), post<{ message: string }>())
+      )
     )
   )
 );
@@ -25,6 +50,19 @@ interface ApiRequest {
 
 export const BASE_URL = "https://api.thecatapi.com/v1";
 
+const result = getClientHandlers(api, BASE_URL, {}, {});
+
+export const makeApiCalls = (apiKey: string) => {
+  const [[getAllImages, getAllFavourites], [getAllVotes, postFavourite]] =
+    result(apiKey);
+  return {
+    getAllImages,
+    getAllFavourites,
+    getAllVotes,
+    postFavourite,
+  };
+};
+
 export class CatsApi {
   apiKey: string;
 
@@ -32,11 +70,10 @@ export class CatsApi {
     this.apiKey = apiKey;
   }
 
-  uploaded = (): Promise<Cat[]> =>
-    this._makeApiRequest({
-      url: "images/",
-      queryParams: { limit: 100 },
-    }) as Promise<Cat[]>;
+  uploaded = (): Promise<Cat[]> => {
+    const { getAllImages } = makeApiCalls(this.apiKey);
+    return getAllImages(100)();
+  };
 
   newCat = (catData: File) => {
     const catPicture = new FormData();
