@@ -1,10 +1,11 @@
 import React from "react";
 import { CatApiContext } from "../hooks";
 import { QueryClient, QueryClientProvider } from "react-query";
-import { apiFromKey } from "../catsApi";
+import { api, apiFromKey, BASE_URL } from "../catsApi";
 import { MemoryRouter } from "react-router-dom";
+import { getMockHandlers } from "../api";
 
-const api = apiFromKey();
+const apiClient = apiFromKey();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,7 +19,14 @@ const queryClient = new QueryClient({
 export const Wrapped = ({ children }: { children: React.ReactNode }) => (
   <MemoryRouter>
     <QueryClientProvider client={queryClient}>
-      <CatApiContext.Provider value={api}>{children}</CatApiContext.Provider>
+      <CatApiContext.Provider value={apiClient}>
+        {children}
+      </CatApiContext.Provider>
     </QueryClientProvider>
   </MemoryRouter>
 );
+
+export const [
+  [mockAllImages, mockAllFavourites],
+  [mockAllVotes, mockPostFavourite],
+] = getMockHandlers(api, BASE_URL);

@@ -10,7 +10,10 @@ type Path<S> = { type: "PATH"; data: ApiPath; next: S };
 type Or<S, T> = { type: "OR"; next: [S, T] };
 type Capture<S> = { type: "CAPTURE"; data: ApiCapture; next: S };
 
+// TODO: Make method type parameter optional
+
 export const get = <T>(): Method<T> => ({ type: "METHOD", data: "GET" });
+export const post = <T>(): Method<T> => ({ type: "METHOD", data: "POST" });
 
 export const path =
   (url: ApiPath) =>
@@ -71,12 +74,20 @@ function getPathsAcc<A extends AnyApi>(a: A, acc: string): Paths<typeof a> {
 
 export const getPaths = <A extends AnyApi>(a: A) => getPathsAcc(a, "");
 
+type Response<T> = { statusCode: number; data: T };
+
+export const ok = <T>(data: T): Response<T> => ({ statusCode: 200, data });
+export const serverError = <T>(data: T): Response<T> => ({
+  statusCode: 500,
+  data,
+});
+
 type MockHandler<R> = R extends Path<infer N>
   ? MockHandler<N>
   : R extends Or<infer N, infer M>
   ? [MockHandler<N>, MockHandler<M>]
   : R extends Method<infer T>
-  ? (s: T) => RestHandler
+  ? (s: Response<T>) => RestHandler
   : R extends Capture<infer S>
   ? (c: string) => MockHandler<S>
   : never;
@@ -93,10 +104,11 @@ export function getMockHandlers<A extends AnyApi>(
   switch (a.type) {
     case "METHOD": {
       const method = MAP_METHOD_TO_MSW[a.data];
-      return ((data: any) =>
-        method(path, (req, res, ctx) => res(ctx.json(data)))) as MockHandler<
-        typeof a
-      >;
+      return (({ statusCode, data }: Response<any>) => {
+        return method(path, (req, res, ctx) =>
+          res(ctx.status(statusCode), ctx.json(data))
+        );
+      }) as MockHandler<typeof a>;
     }
     case "PATH": {
       const nextAcc = `${path}/${a.data}`;

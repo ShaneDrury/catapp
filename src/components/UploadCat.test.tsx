@@ -1,15 +1,12 @@
 import { render, screen } from "@testing-library/react";
-import { rest } from "msw";
 import { setupServer } from "msw/node";
-import { BASE_URL } from "../catsApi";
 import UploadCat from "./UploadCat";
-import { Wrapped } from "./testing";
+import { mockPostFavourite, Wrapped } from "./testing";
 import userEvent from "@testing-library/user-event";
+import { serverError } from "../api";
 
 const server = setupServer(
-  rest.post(`${BASE_URL}/images/upload`, (req, res, ctx) => {
-    return res(ctx.status(500), ctx.json({ message: "some error" }));
-  })
+  mockPostFavourite(serverError({ message: "some error" }))
 );
 
 beforeAll(() => server.listen());

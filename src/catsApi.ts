@@ -1,13 +1,19 @@
 import { Cat, Favourite, Vote } from "./types";
 import { runRequest } from "./request";
-import { combine, get, or, path } from "./api";
+import { combine, get, or, path, post } from "./api";
 
 export const api = or(
   or(
     combine(path("images"), get<Cat[]>()),
     combine(path("favourites"), get<Favourite[]>())
   ),
-  combine(path("votes"), get<Vote[]>())
+  or(
+    combine(path("votes"), get<Vote[]>()),
+    combine(
+      path("images"),
+      combine(path("upload"), post<{ message: string }>())
+    )
+  )
 );
 
 interface ApiRequest {

@@ -5,22 +5,23 @@ import {
 } from "@testing-library/react";
 import { setupServer } from "msw/node";
 import App from "./App";
-import { api, BASE_URL } from "../catsApi";
-import { Wrapped } from "./testing";
-import { getMockHandlers } from "../api";
-
-const [[mockAllImages, mockAllFavourites], mockAllVotes] = getMockHandlers(
-  api,
-  BASE_URL
-);
+import {
+  mockAllFavourites,
+  mockAllImages,
+  mockAllVotes,
+  Wrapped,
+} from "./testing";
+import { ok } from "../api";
 
 const server = setupServer(
-  mockAllImages([{ id: "cat_id", url: "some-url" }]),
-  mockAllFavourites([{ id: "favourite_id", image_id: "cat_id" }]),
-  mockAllVotes([
-    { value: 1, image_id: "cat_id" },
-    { value: 1, image_id: "cat_id" },
-  ])
+  mockAllImages(ok([{ id: "cat_id", url: "some-url" }])),
+  mockAllFavourites(ok([{ id: "favourite_id", image_id: "cat_id" }])),
+  mockAllVotes(
+    ok([
+      { value: 1, image_id: "cat_id" },
+      { value: 1, image_id: "cat_id" },
+    ])
+  )
 );
 
 beforeAll(() => server.listen());
