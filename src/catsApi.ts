@@ -1,6 +1,6 @@
 import { Cat, Favourite, Vote } from "./types";
 import { runRequest } from "./request";
-import { combine, get, or, path } from "./experimentation";
+import { combine, get, or, path } from "./api";
 
 export const api = or(
   or(

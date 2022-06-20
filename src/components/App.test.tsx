@@ -7,7 +7,7 @@ import { setupServer } from "msw/node";
 import App from "./App";
 import { api, BASE_URL } from "../catsApi";
 import { Wrapped } from "./testing";
-import { getMockHandlers } from "../experimentation";
+import { getMockHandlers } from "../api";
 
 const [[mockAllImages, mockAllFavourites], mockAllVotes] = getMockHandlers(
   api,
