@@ -327,9 +327,10 @@ class Dsl<T> {
   static empty = () => new Dsl((next) => next);
   get = <G>(): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
     new DslLeaf(this.dsl(get<G>())) as any;
-  post = <G>(): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
-    new DslLeaf(this.dsl(post<G>())) as any;
-  delete_ = <G>(): DslLeaf<
+  post = <G = void>(): DslLeaf<
+    FancyReturn<ReturnType<typeof this.dsl>, Method<G>>
+  > => new DslLeaf(this.dsl(post<G>())) as any;
+  delete_ = <G = void>(): DslLeaf<
     FancyReturn<ReturnType<typeof this.dsl>, Method<G>>
   > => new DslLeaf(this.dsl(delete_<G>())) as any;
   path = <M>(
@@ -352,6 +353,18 @@ class Dsl<T> {
     requestBody?: ApiRequestBody
   ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, Body<M, Q>>> =>
     new Dsl((next) => this.dsl(body<Q>(requestBody)(next))) as any;
+  or = <P, Q>(
+    l1: DslLeaf<P>,
+    l2: DslLeaf<Q>
+  ): DslLeaf<
+    Or<
+      FancyReturn<ReturnType<typeof this.dsl>, P>,
+      FancyReturn<ReturnType<typeof this.dsl>, Q>
+    >
+  > =>
+    new DslLeaf<Or<P, Q>>(
+      or(this.dsl(l1.run()), this.dsl(l2.run())) as any
+    ) as any;
 }
 
 const dsl = Dsl.empty()
@@ -362,6 +375,10 @@ const dsl = Dsl.empty()
   .path("download")
   .body<{ image_id: string }>()
   .queryParam<number>("limit")
-  .get<string>();
-const requester = getClientHandlers(dsl.run(), "BASE_URL", {}, {}, null);
-// console.log({ dsl: dsl.run(), requester });
+  .or(Dsl.empty().get<string>(), Dsl.empty().post());
+const [getter, setter] = getClientHandlers(dsl.run(), "BASE_URL", {}, {}, null);
+// console.log({
+//   dsl: dsl.run(),
+//   getter: getter("foo")("someHeader")({ image_id: "foo" })(200),
+//   setter: setter("foo")("someHeader")({ image_id: "foo" })(100),
+// });
