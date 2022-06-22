@@ -7,35 +7,39 @@ export const BASE_URL = "https://api.thecatapi.com/v1";
 
 const d = Dsl.empty();
 
+const favouritesApi = d
+  .path("favourites")
+  .or(
+    d.get<Favourite[]>(),
+    d.or(
+      d.capture(":favouriteId").delete_(),
+      d.body<{ image_id: string }>("JSON").post()
+    )
+  );
+
+const votesApi = d
+  .path("votes")
+  .or(
+    d.get<Vote[]>(),
+    d.or(
+      d.body<{ image_id: string; value: 1 }>("JSON").post(),
+      d.body<{ image_id: string; value: 0 }>("JSON").post()
+    )
+  );
+
+const catsApi = d.path("images").queryParam<number>("limit").get<Cat[]>();
+
+const uploadApi = d
+  .path("images")
+  .path("upload")
+  .body<FormData>()
+  .post<{ message: string }>();
+
 export const api = d
   .header("x-api-key")
   .or(
-    d
-      .header("Content-type")
-      .or(
-        d.path("images").queryParam<number>("limit").get<Cat[]>(),
-        d.or(
-          d
-            .path("favourites")
-            .or(
-              d.get<Favourite[]>(),
-              d.or(
-                d.capture(":favouriteId").delete_(),
-                d.body<{ image_id: string }>("JSON").post()
-              )
-            ),
-          d
-            .path("votes")
-            .or(
-              d.get<Vote[]>(),
-              d.or(
-                d.body<{ image_id: string; value: 1 }>("JSON").post(),
-                d.body<{ image_id: string; value: 0 }>("JSON").post()
-              )
-            )
-        )
-      ),
-    d.path("images").path("upload").body<FormData>().post<{ message: string }>()
+    d.header("Content-type").or(catsApi, d.or(favouritesApi, votesApi)),
+    uploadApi
   )
   .run();
 
