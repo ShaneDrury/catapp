@@ -300,3 +300,62 @@ export function getClientHandlers<A extends AnyApi>(
     }
   }
 }
+
+type SimpleGet<G> = { type: "GET" };
+const simpleGet = <G>(): SimpleGet<G> => ({ type: "GET" });
+type SimplePath<T> = { type: "PATH"; next: T; url: string };
+const simplePath =
+  (url: string) =>
+  <T>(next: T): SimplePath<T> => ({ type: "PATH", url, next });
+
+type SimpleApi = SimpleGet<any> | SimplePath<any>;
+
+const addGet = <T>(t: (n: SimpleGet<string>) => T) => t(simpleGet<string>());
+
+// error here - boolean /= string
+const createObj = <T>(dsl: (n: SimpleGet<boolean>) => T) => ({
+  addGet: <G>() => dsl(simpleGet<G>()),
+  // addPath: (url: string) => (next: any) => t(simplePath(url)(next)),
+});
+
+const something = createObj(simplePath("foo")).addGet<string>();
+
+// IDEA: Fancy return type for addGet etc
+
+class DslLeaf<T> {
+  dsl: T;
+  constructor(dsl: T) {
+    this.dsl = dsl;
+  }
+  run = (): T => this.dsl;
+}
+
+type FancyReturn<T, R> = T extends SimplePath<infer M>
+  ? FancyReturn<M, SimplePath<R>>
+  : R;
+// existing: Path<A>, new: Get<string>
+// -> Path<Get<string>>
+// Path<A> extends Path so recurse
+// A and Path<Get<string>>
+// A simple so return R
+
+class Dsl<T> {
+  dsl: <N>(next: N) => T;
+  constructor(dsl: <N>(next: N) => T) {
+    this.dsl = dsl;
+  }
+  get = <G>(): DslLeaf<
+    FancyReturn<ReturnType<typeof this.dsl>, SimpleGet<G>>
+  > => new DslLeaf(this.dsl(simpleGet<G>())) as any;
+  path = <M>(
+    url: string
+  ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, SimplePath<M>>> =>
+    new Dsl((next) => this.dsl(simplePath(url)(next))) as any;
+}
+
+const dsl1 = new Dsl(simplePath("foo"));
+const dsl2 = new Dsl(simplePath("foo")).path("bar");
+const dsl3 = new Dsl(simplePath("foo")).path("bar").path("baz");
+
+const dsl = new Dsl(simplePath("foo")).path("bar").path("baz").get<string>();
+console.log({ dsl: dsl.run() });
