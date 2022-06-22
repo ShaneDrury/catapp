@@ -299,18 +299,16 @@ export function getClientHandlers<A extends AnyApi>(
   }
 }
 
-// TODO: Fix base case, which puts last thing at outer bit
-
 type FancyReturn<T, R> = T extends Path<infer M>
-  ? FancyReturn<M, Path<R>>
+  ? Path<FancyReturn<M, R>>
   : T extends Capture<infer M>
-  ? FancyReturn<M, Capture<R>>
+  ? Capture<FancyReturn<M, R>>
   : T extends Header<infer M>
-  ? FancyReturn<M, Header<R>>
+  ? Header<FancyReturn<M, R>>
   : T extends QueryParam<infer M, infer N>
-  ? FancyReturn<M, QueryParam<R, N>>
+  ? QueryParam<FancyReturn<M, R>, N>
   : T extends Body<infer M, infer N>
-  ? FancyReturn<M, Body<R, N>>
+  ? Body<FancyReturn<M, R>, N>
   : R;
 
 class DslLeaf<T> {
@@ -364,4 +362,4 @@ const dsl = new Dsl(path("v1"))
   .queryParam<number>("limit")
   .get<string>();
 const requester = getClientHandlers(dsl.run(), "BASE_URL", {}, {}, null);
-console.log({ dsl: dsl.run(), requester });
+// console.log({ dsl: dsl.run(), requester });
