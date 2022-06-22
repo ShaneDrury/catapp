@@ -21,7 +21,7 @@ type QueryParam<S, T = unknown> = {
   next: S;
 };
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-type Body<T, S> = {
+type Body<S, T = unknown> = {
   type: "BODY";
   requestBodyType?: ApiRequestBody;
   next: S;
@@ -71,7 +71,7 @@ export const queryParam =
 
 export const body =
   <T>(requestBody?: ApiRequestBody) =>
-  <A>(next: A): Body<T, A> => ({
+  <A>(next: A): Body<A, T> => ({
     type: "BODY",
     requestBodyType: requestBody,
     next,
@@ -97,8 +97,7 @@ type Paths<R> = R extends Path<infer N>
   ? Paths<S>
   : R extends QueryParam<infer S>
   ? Paths<S>
-  : // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  R extends Body<infer T, infer S>
+  : R extends Body<infer S>
   ? Paths<S>
   : never;
 
@@ -157,8 +156,7 @@ type MockHandler<R> = R extends Path<infer N>
   ? MockHandler<S>
   : R extends QueryParam<infer S>
   ? MockHandler<S>
-  : // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  R extends Body<infer T, infer S>
+  : R extends Body<infer S>
   ? MockHandler<S>
   : never;
 
@@ -214,7 +212,7 @@ type ClientHandler<R> = R extends Path<infer N>
   ? (header: string) => ClientHandler<S>
   : R extends QueryParam<infer S, infer T>
   ? (queryParam: T) => ClientHandler<S>
-  : R extends Body<infer T, infer S>
+  : R extends Body<infer S, infer T>
   ? (body: T) => ClientHandler<S>
   : never;
 
@@ -301,6 +299,20 @@ export function getClientHandlers<A extends AnyApi>(
   }
 }
 
+// TODO: Fix base case, which puts last thing at outer bit
+
+type FancyReturn<T, R> = T extends Path<infer M>
+  ? FancyReturn<M, Path<R>>
+  : T extends Capture<infer M>
+  ? FancyReturn<M, Capture<R>>
+  : T extends Header<infer M>
+  ? FancyReturn<M, Header<R>>
+  : T extends QueryParam<infer M, infer N>
+  ? FancyReturn<M, QueryParam<R, N>>
+  : T extends Body<infer M, infer N>
+  ? FancyReturn<M, Body<R, N>>
+  : R;
+
 class DslLeaf<T> {
   dsl: T;
   constructor(dsl: T) {
@@ -309,8 +321,6 @@ class DslLeaf<T> {
   run = (): T => this.dsl;
 }
 
-type FancyReturn<T, R> = T extends Path<infer M> ? FancyReturn<M, Path<R>> : R;
-
 class Dsl<T> {
   dsl: <N>(next: N) => T;
   constructor(dsl: <N>(next: N) => T) {
@@ -318,12 +328,40 @@ class Dsl<T> {
   }
   get = <G>(): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
     new DslLeaf(this.dsl(get<G>())) as any;
+  post = <G>(): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
+    new DslLeaf(this.dsl(post<G>())) as any;
+  delete_ = <G>(): DslLeaf<
+    FancyReturn<ReturnType<typeof this.dsl>, Method<G>>
+  > => new DslLeaf(this.dsl(delete_<G>())) as any;
   path = <M>(
     url: string
   ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, Path<M>>> =>
     new Dsl((next) => this.dsl(path(url)(next))) as any;
+  capture = <M>(
+    c: ApiPath
+  ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, Capture<M>>> =>
+    new Dsl((next) => this.dsl(capture(c)(next))) as any;
+  header = <M>(
+    name: string
+  ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, Header<M>>> =>
+    new Dsl((next) => this.dsl(header(name)(next))) as any;
+  queryParam = <Q, M = unknown>(
+    name: string
+  ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, QueryParam<M, Q>>> =>
+    new Dsl((next) => this.dsl(queryParam<Q>(name)(next))) as any;
+  body = <Q, M = unknown>(
+    requestBody?: ApiRequestBody
+  ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, Body<M, Q>>> =>
+    new Dsl((next) => this.dsl(body<Q>(requestBody)(next))) as any;
 }
 
-const dsl = new Dsl(path("foo")).path("bar").path("baz").get<string>();
-const paths = getPaths(dsl.run());
-// console.log({ dsl: dsl.run(), paths });
+const dsl = new Dsl(path("v1"))
+  .path("images")
+  .capture(":imageId")
+  .header("foo")
+  .path("download")
+  .body<{ image_id: string }>()
+  .queryParam<number>("limit")
+  .get<string>();
+const requester = getClientHandlers(dsl.run(), "BASE_URL", {}, {}, null);
+console.log({ dsl: dsl.run(), requester });
