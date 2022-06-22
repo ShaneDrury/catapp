@@ -319,7 +319,7 @@ class DslLeaf<T> {
   run = (): T => this.dsl;
 }
 
-class Dsl<T> {
+export class Dsl<T> {
   dsl: <N>(next: N) => T;
   constructor(dsl: <N>(next: N) => T) {
     this.dsl = dsl;
@@ -333,6 +333,7 @@ class Dsl<T> {
   delete_ = <G = void>(): DslLeaf<
     FancyReturn<ReturnType<typeof this.dsl>, Method<G>>
   > => new DslLeaf(this.dsl(delete_<G>())) as any;
+  p = (url: string) => this.path(url);
   path = <M>(
     url: string
   ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, Path<M>>> =>
@@ -356,29 +357,7 @@ class Dsl<T> {
   or = <P, Q>(
     l1: DslLeaf<P>,
     l2: DslLeaf<Q>
-  ): DslLeaf<
-    Or<
-      FancyReturn<ReturnType<typeof this.dsl>, P>,
-      FancyReturn<ReturnType<typeof this.dsl>, Q>
-    >
-  > =>
-    new DslLeaf<Or<P, Q>>(
-      or(this.dsl(l1.run()), this.dsl(l2.run())) as any
-    ) as any;
+  ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Or<P, Q>>> =>
+    new DslLeaf(this.dsl(or(l1.run(), l2.run()))) as any;
 }
-
-const dsl = Dsl.empty()
-  .path("v1")
-  .path("images")
-  .capture(":imageId")
-  .header("foo")
-  .path("download")
-  .body<{ image_id: string }>()
-  .queryParam<number>("limit")
-  .or(Dsl.empty().get<string>(), Dsl.empty().post());
-const [getter, setter] = getClientHandlers(dsl.run(), "BASE_URL", {}, {}, null);
-// console.log({
-//   dsl: dsl.run(),
-//   getter: getter("foo")("someHeader")({ image_id: "foo" })(200),
-//   setter: setter("foo")("someHeader")({ image_id: "foo" })(100),
-// });
+// TODO: Could do e.g. d["foo"]["bar"] === Dsl.empty().path("foo").path("bar")

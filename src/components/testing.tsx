@@ -28,11 +28,11 @@ export const Wrapped = ({ children }: { children: React.ReactNode }) => (
 
 export const [
   [
+    mockAllImages,
     [
-      mockAllImages,
-      [[mockAllFavourites, mockDeleteFavourite], mockPostFavourite],
+      [mockAllFavourites, [mockDeleteFavourites, mockPostFavourite]],
+      [mockAllVotes, [mockVoteUp, mockVoteDown]],
     ],
-    [mockAllVotes, [mockVoteUp, mockVoteDown]],
   ],
   mockUploadCat,
 ] = getMockHandlers(api, BASE_URL);
