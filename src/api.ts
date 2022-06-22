@@ -324,6 +324,7 @@ class Dsl<T> {
   constructor(dsl: <N>(next: N) => T) {
     this.dsl = dsl;
   }
+  static empty = () => new Dsl((next) => next);
   get = <G>(): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
     new DslLeaf(this.dsl(get<G>())) as any;
   post = <G>(): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
@@ -336,9 +337,9 @@ class Dsl<T> {
   ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, Path<M>>> =>
     new Dsl((next) => this.dsl(path(url)(next))) as any;
   capture = <M>(
-    c: ApiPath
+    placeholder: ApiPath
   ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, Capture<M>>> =>
-    new Dsl((next) => this.dsl(capture(c)(next))) as any;
+    new Dsl((next) => this.dsl(capture(placeholder)(next))) as any;
   header = <M>(
     name: string
   ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, Header<M>>> =>
@@ -353,7 +354,8 @@ class Dsl<T> {
     new Dsl((next) => this.dsl(body<Q>(requestBody)(next))) as any;
 }
 
-const dsl = new Dsl(path("v1"))
+const dsl = Dsl.empty()
+  .path("v1")
   .path("images")
   .capture(":imageId")
   .header("foo")
