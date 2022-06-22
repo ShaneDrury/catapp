@@ -9,22 +9,18 @@ const d = Dsl.empty();
 
 const favouritesApi = d
   .path("favourites")
-  .or(
+  .any(
     d.get<Favourite[]>(),
-    d.or(
-      d.capture(":favouriteId").delete_(),
-      d.body<{ image_id: string }>("JSON").post()
-    )
+    d.capture(":favouriteId").delete_(),
+    d.body<{ image_id: string }>("JSON").post()
   );
 
 const votesApi = d
   .path("votes")
-  .or(
+  .any(
     d.get<Vote[]>(),
-    d.or(
-      d.body<{ image_id: string; value: 1 }>("JSON").post(),
-      d.body<{ image_id: string; value: 0 }>("JSON").post()
-    )
+    d.body<{ image_id: string; value: 1 }>("JSON").post(),
+    d.body<{ image_id: string; value: 0 }>("JSON").post()
   );
 
 const catsApi = d.path("images").queryParam<number>("limit").get<Cat[]>();
@@ -37,8 +33,8 @@ const uploadApi = d
 
 export const api = d
   .header("x-api-key")
-  .or(
-    d.header("Content-type").or(catsApi, d.or(favouritesApi, votesApi)),
+  .any(
+    d.header("Content-type").any(catsApi, favouritesApi, votesApi),
     uploadApi
   )
   .run();
@@ -49,10 +45,8 @@ export const makeApiCalls = (apiKey: string) => {
   const [jsonEndpoints, uploadCat] = allEndpoints(apiKey);
   const [
     getAllImages,
-    [
-      [getAllFavourites, [deleteFavourite, postFavourite]],
-      [getAllVotes, [voteUp, voteDown]],
-    ],
+    [getAllFavourites, deleteFavourite, postFavourite],
+    [getAllVotes, voteUp, voteDown],
   ] = jsonEndpoints("application/json");
   return {
     getAllImages,

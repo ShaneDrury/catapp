@@ -12,6 +12,7 @@ type ApiRequestBody = "JSON" | undefined;
 type Method<T = void> = { type: "METHOD"; data: ApiMethod };
 type Path<S> = { type: "PATH"; data: ApiPath; next: S };
 type Or<S, T> = { type: "OR"; next: [S, T] };
+type Any<T extends any[]> = { type: "ANY"; next: T };
 type Capture<S> = { type: "CAPTURE"; data: ApiCapture; next: S };
 type Header<S> = { type: "HEADER"; data: ApiHeader; next: S };
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -82,12 +83,23 @@ export const or = <S, T>(x1: S, x2: T): Or<S, T> => ({
   next: [x1, x2],
 });
 
+export const any = <T extends any[]>(...xs: T): Any<T> => ({
+  type: "ANY",
+  next: xs,
+});
+
 export const combine = <A, B>(x1: (x: A) => B, x2: A) => x1(x2);
+
+type AddPath<T> = T extends [infer F, ...infer Rest]
+  ? [Path<F>, ...AddPath<Rest>]
+  : [];
 
 type Paths<R> = R extends Path<infer N>
   ? Paths<N>
   : R extends Or<infer N, infer M>
   ? [Paths<N>, Paths<M>]
+  : R extends Any<infer P>
+  ? AddPath<P>
   : // eslint-disable-next-line @typescript-eslint/no-unused-vars
   R extends Method<infer T>
   ? string
@@ -108,7 +120,8 @@ type AnyApi =
   | Or<any, any>
   | Header<any>
   | QueryParam<any>
-  | Body<any, any>;
+  | Body<any, any>
+  | Any<any>;
 
 function getPathsAcc<A extends AnyApi>(a: A, acc: string): Paths<typeof a> {
   switch (a.type) {
@@ -128,6 +141,10 @@ function getPathsAcc<A extends AnyApi>(a: A, acc: string): Paths<typeof a> {
         typeof a
       >;
     }
+    case "ANY": {
+      const xs = a.next;
+      return xs.map((x: A) => getPathsAcc(x, acc)) as Paths<typeof a>;
+    }
     default: {
       return getPathsAcc(a.next, acc) as Paths<typeof a>;
     }
@@ -144,10 +161,16 @@ export const serverError = <T>(data: T): Response<T> => ({
   data,
 });
 
+type AddMockHandler<T> = T extends [infer F, ...infer Rest]
+  ? [MockHandler<F>, ...AddMockHandler<Rest>]
+  : [];
+
 type MockHandler<R> = R extends Path<infer N>
   ? MockHandler<N>
   : R extends Or<infer N, infer M>
   ? [MockHandler<N>, MockHandler<M>]
+  : R extends Any<infer P>
+  ? AddMockHandler<P>
   : R extends Method<infer T>
   ? (s: Response<T>) => RestHandler
   : R extends Capture<infer S>
@@ -190,6 +213,12 @@ export function getMockHandlers<A extends AnyApi>(
         getMockHandlers(r, path),
       ] as MockHandler<typeof a>;
     }
+    case "ANY": {
+      const xs = a.next;
+      return xs.map((x: A) => getMockHandlers(x, path)) as MockHandler<
+        typeof a
+      >;
+    }
     case "CAPTURE": {
       return ((c: string) =>
         getMockHandlers(a.next, `${path}/${c}`)) as MockHandler<typeof a>;
@@ -200,10 +229,16 @@ export function getMockHandlers<A extends AnyApi>(
   }
 }
 
+type AddClientHandler<T> = T extends [infer F, ...infer Rest]
+  ? [ClientHandler<F>, ...AddClientHandler<Rest>]
+  : [];
+
 type ClientHandler<R> = R extends Path<infer N>
   ? ClientHandler<N>
   : R extends Or<infer N, infer M>
   ? [ClientHandler<N>, ClientHandler<M>]
+  : R extends Any<infer P>
+  ? AddClientHandler<P>
   : R extends Method<infer T>
   ? () => Promise<T>
   : R extends Capture<infer S>
@@ -252,6 +287,12 @@ export function getClientHandlers<A extends AnyApi>(
         getClientHandlers(l, path, headers, queryParams, body),
         getClientHandlers(r, path, headers, queryParams, body),
       ] as ClientHandler<typeof a>;
+    }
+    case "ANY": {
+      const xs = a.next;
+      return xs.map((x: A) =>
+        getClientHandlers(x, path, headers, queryParams, body)
+      ) as ClientHandler<typeof a>;
     }
     case "CAPTURE": {
       return ((c: string) =>
@@ -319,6 +360,10 @@ class DslLeaf<T> {
   run = (): T => this.dsl;
 }
 
+type StripDslLeaf<T extends any[]> = T extends [DslLeaf<infer F>, ...infer Rest]
+  ? [F, ...StripDslLeaf<Rest>]
+  : [];
+
 export class Dsl<T> {
   dsl: <N>(next: N) => T;
   constructor(dsl: <N>(next: N) => T) {
@@ -359,5 +404,11 @@ export class Dsl<T> {
     l2: DslLeaf<Q>
   ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Or<P, Q>>> =>
     new DslLeaf(this.dsl(or(l1.run(), l2.run()))) as any;
+  any = <P extends any[]>(
+    ...xs: P
+  ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Any<StripDslLeaf<P>>>> =>
+    new DslLeaf(this.dsl(any(...xs.map((x) => x.run())))) as any;
 }
+
+// TODO: Change these as any's to the real return type
 // TODO: Could do e.g. d["foo"]["bar"] === Dsl.empty().path("foo").path("bar")
