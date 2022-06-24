@@ -11,8 +11,8 @@ const favouritesApi = d
   .path("favourites")
   .any(
     d.get<Favourite[]>(),
-    d.capture(":favouriteId").delete_(),
-    d.body<{ image_id: string }>("JSON").post()
+    d.capture(":favouriteId").delete_<{}>(),
+    d.body<{ image_id: string }>("JSON").post<{}>()
   );
 
 const votesApi = d

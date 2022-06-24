@@ -84,3 +84,33 @@ test("voting on a cat", async () => {
   );
   expect(await screen.findByText("Score: 1")).toBeInTheDocument();
 });
+
+test("favouriting a cat", async () => {
+  mocks.mockPostFavourite(ok({}));
+  mocks.mockDeleteFavourite("favourite_id")(ok({}));
+  mocks.mockAllFavourites(
+    ok([{ id: "favourite_id", image_id: "cat_id" }]),
+    ok([]),
+    ok([{ id: "favourite_id", image_id: "cat_id" }])
+  );
+  render(
+    <Wrapped>
+      <App />
+    </Wrapped>
+  );
+  const unfavouriteButton = await screen.findByRole("button", {
+    name: "Unfavourite cat cat_id",
+  });
+  expect(unfavouriteButton).toBeInTheDocument();
+  await userEvent.click(unfavouriteButton);
+  const favouriteButton = await screen.findByRole("button", {
+    name: "Favourite cat cat_id",
+  });
+  expect(favouriteButton).toBeInTheDocument();
+  await userEvent.click(favouriteButton);
+  expect(
+    await screen.findByRole("button", {
+      name: "Unfavourite cat cat_id",
+    })
+  ).toBeInTheDocument();
+});

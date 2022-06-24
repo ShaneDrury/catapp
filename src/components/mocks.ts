@@ -5,7 +5,7 @@ import { server } from "./testing";
 export const [
   [
     [mockAllImages],
-    [mockAllFavourites, mockDeleteFavourites, mockPostFavourite],
+    [mockAllFavourites, mockDeleteFavourite, mockPostFavourite],
     [mockAllVotes, mockVoteUp, mockVoteDown],
   ],
   mockUploadCat,
