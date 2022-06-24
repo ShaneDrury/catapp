@@ -7,7 +7,13 @@ import { setupServer } from "msw/node";
 
 const apiClient = apiFromKey("");
 
-export const Wrapped = ({ children }: { children: React.ReactNode }) => {
+export const Wrapped = ({
+  children,
+  initialEntries,
+}: {
+  children: React.ReactNode;
+  initialEntries?: string[];
+}) => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -18,7 +24,7 @@ export const Wrapped = ({ children }: { children: React.ReactNode }) => {
     },
   });
   return (
-    <MemoryRouter>
+    <MemoryRouter initialEntries={initialEntries}>
       <QueryClientProvider client={queryClient}>
         <CatApiContext.Provider value={apiClient}>
           {children}

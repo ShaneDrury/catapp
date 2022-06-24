@@ -31,7 +31,7 @@ const uploadApi = d
   .path("images")
   .path("upload")
   .body<FormData>()
-  .post<{ message: string }>();
+  .post<{ message?: string }>();
 
 export const api = d
   .header("x-api-key")
