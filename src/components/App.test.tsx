@@ -9,15 +9,22 @@ import * as mocks from "./mocks";
 import { ok } from "../api";
 import userEvent from "@testing-library/user-event";
 
-test("happy path, rendering the score and buttons", async () => {
+beforeEach(() => {
   mocks.mockAllImages(ok([{ id: "cat_id", url: "some-url" }]));
   mocks.mockAllFavourites(ok([{ id: "favourite_id", image_id: "cat_id" }]));
+  // TODO: Check that vote up/down are separated
+  // i.e. handle the body in the mock handler
+  mocks.mockVoteUp(ok({}));
+  mocks.mockVoteDown(ok({}));
   mocks.mockAllVotes(
     ok([
       { value: 1, image_id: "cat_id" },
       { value: 1, image_id: "cat_id" },
     ])
   );
+});
+
+test("happy path, rendering the score and buttons", async () => {
   render(
     <Wrapped>
       <App />
@@ -41,13 +48,6 @@ test("happy path, rendering the score and buttons", async () => {
 });
 
 test("voting on a cat", async () => {
-  mocks.mockAllImages(ok([{ id: "cat_id", url: "some-url" }]));
-  mocks.mockAllFavourites(ok([{ id: "favourite_id", image_id: "cat_id" }]));
-  // TODO: Check that vote up/down are separated
-  // i.e. handle the body in the mock handler
-  mocks.mockVoteUp(ok({}));
-  mocks.mockVoteDown(ok({}));
-
   mocks.mockAllVotes(
     ok([
       { value: 1, image_id: "cat_id" },
