@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./components/App";
 
 import { QueryClient, QueryClientProvider } from "react-query";
-import { apiFromKey } from "./catsApi";
+import { apiFromKey, BASE_URL } from "./catsApi";
 import { CatApiContext } from "./hooks";
 import GlobalErrorBoundary from "./components/GlobalErrorBoundary";
 import { BrowserRouter } from "react-router-dom";
@@ -14,11 +14,12 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: false,
       suspense: true,
+      retry: false,
     },
   },
 });
 
-const api = apiFromKey();
+const api = apiFromKey(BASE_URL);
 
 const container = document.getElementById("root");
 const root = createRoot(container!);

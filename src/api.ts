@@ -1,9 +1,9 @@
-import { rest, RestHandler } from "msw";
+import { MockedRequest, ResponseResolver, RestContext } from "msw";
 import { runRequest } from "./request";
 
 type ApiPath = string;
 type ApiCapture = string;
-type ApiMethod = "GET" | "POST" | "DELETE";
+type ApiMethod = "GET" | "POST" | "DELETE" | "OPTIONS";
 type ApiHeader = string;
 type ApiQueryParam = string;
 type ApiRequestBody = "JSON" | undefined;
@@ -36,6 +36,10 @@ export const post = <T = void>(): Method<T> => ({
 export const delete_ = <T = void>(): Method<T> => ({
   type: "METHOD",
   data: "DELETE",
+});
+export const options = <T = void>(): Method<T> => ({
+  type: "METHOD",
+  data: "OPTIONS",
 });
 
 export const path =
@@ -165,6 +169,12 @@ type AddMockHandler<T> = T extends [infer F, ...infer Rest]
   ? [MockHandler<F>, ...AddMockHandler<Rest>]
   : [];
 
+export type MockApiData = {
+  url: string;
+  method: ApiMethod;
+  handler: ResponseResolver<MockedRequest, RestContext>;
+};
+
 type MockHandler<R> = R extends Path<infer N>
   ? MockHandler<N>
   : R extends Or<infer N, infer M>
@@ -172,7 +182,7 @@ type MockHandler<R> = R extends Path<infer N>
   : R extends Any<infer P>
   ? AddMockHandler<P>
   : R extends Method<infer T>
-  ? (s: Response<T>) => RestHandler
+  ? (s: Response<T>) => MockApiData
   : R extends Capture<infer S>
   ? (c: string) => MockHandler<S>
   : R extends Header<infer S>
@@ -183,23 +193,24 @@ type MockHandler<R> = R extends Path<infer N>
   ? MockHandler<S>
   : never;
 
-const MAP_METHOD_TO_MSW = {
-  GET: rest.get,
-  POST: rest.post,
-  DELETE: rest.delete,
-};
-
 export function getMockHandlers<A extends AnyApi>(
   a: A,
   path: string
 ): MockHandler<typeof a> {
   switch (a.type) {
     case "METHOD": {
-      const method = MAP_METHOD_TO_MSW[a.data];
-      return (({ statusCode, data }: Response<any>) => {
-        return method(path, (req, res, ctx) =>
-          res(ctx.status(statusCode), ctx.json(data))
-        );
+      return (<T>({ statusCode, data }: Response<T>) => {
+        // TODO: Specify content type in api, then can use json/other stuff here
+        const handler: ResponseResolver<MockedRequest, RestContext> = (
+          req,
+          res,
+          ctx
+        ) => res(ctx.status(statusCode), ctx.json<T>(data));
+        return {
+          url: path,
+          method: a.data,
+          handler,
+        };
       }) as MockHandler<typeof a>;
     }
     case "PATH": {
@@ -378,6 +389,9 @@ export class Dsl<T> {
   delete_ = <G = void>(): DslLeaf<
     FancyReturn<ReturnType<typeof this.dsl>, Method<G>>
   > => new DslLeaf(this.dsl(delete_<G>())) as any;
+  options = <G = void>(): DslLeaf<
+    FancyReturn<ReturnType<typeof this.dsl>, Method<G>>
+  > => new DslLeaf(this.dsl(options<G>())) as any;
   p = (url: string) => this.path(url);
   path = <M>(
     url: string

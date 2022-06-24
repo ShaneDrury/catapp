@@ -4,9 +4,14 @@
 // learn more: https://github.com/testing-library/jest-dom
 import "@testing-library/jest-dom";
 import { setLogger } from "react-query";
+import { server } from "./components/testing";
 
 setLogger({
   log: () => {},
   warn: () => {},
   error: () => {},
 });
+
+beforeAll(() => server.listen());
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());

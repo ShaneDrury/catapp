@@ -19,11 +19,13 @@ const votesApi = d
   .path("votes")
   .any(
     d.get<Vote[]>(),
-    d.body<{ image_id: string; value: 1 }>("JSON").post(),
-    d.body<{ image_id: string; value: 0 }>("JSON").post()
+    d.body<{ image_id: string; value: 1 }>("JSON").post<{}>(),
+    d.body<{ image_id: string; value: 0 }>("JSON").post<{}>()
   );
 
-const catsApi = d.path("images").queryParam<number>("limit").get<Cat[]>();
+const catsApi = d
+  .path("images")
+  .any(d.queryParam<number>("limit").get<Cat[]>());
 
 const uploadApi = d
   .path("images")
@@ -39,12 +41,19 @@ export const api = d
   )
   .run();
 
-const allEndpoints = getClientHandlers(api, BASE_URL, {}, {}, null);
+// could recursive functions take a second parameter which is next?
 
-export const makeApiCalls = (apiKey: string) => {
+// export const apiTest = d
+//   .header("x-api-key", [
+//     d.header("Content-type", [catsApi, favouritesApi, votesApi]),
+//     uploadApi,
+//   ])
+
+export const makeApiCalls = (apiKey: string, baseUrl: string) => {
+  const allEndpoints = getClientHandlers(api, baseUrl, {}, {}, null);
   const [jsonEndpoints, uploadCat] = allEndpoints(apiKey);
   const [
-    getAllImages,
+    [getAllImages],
     [getAllFavourites, deleteFavourite, postFavourite],
     [getAllVotes, voteUp, voteDown],
   ] = jsonEndpoints("application/json");
@@ -60,9 +69,9 @@ export const makeApiCalls = (apiKey: string) => {
   };
 };
 
-export const apiFromKey = () => {
+export const apiFromKey = (baseUrl: string) => {
   const catsDataEl = document.getElementById("cats-api");
 
   const apiKey = catsDataEl && catsDataEl.dataset.key;
-  return makeApiCalls(apiKey || "test-api-key");
+  return makeApiCalls(apiKey || "test-api-key", baseUrl);
 };
