@@ -1,5 +1,6 @@
 import { getMockHandlers } from "../api";
 import { api } from "../catsApi";
+import { server } from "./testing";
 
 export const [
   [
@@ -8,4 +9,4 @@ export const [
     [mockAllVotes, mockVoteUp, mockVoteDown],
   ],
   mockUploadCat,
-] = getMockHandlers(api, "");
+] = getMockHandlers(api, "", server);

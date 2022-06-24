@@ -1,12 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import UploadCat from "./UploadCat";
-import { mocker, Wrapped } from "./testing";
+import { Wrapped } from "./testing";
 import * as mocks from "./mocks";
 import userEvent from "@testing-library/user-event";
 import { serverError } from "../api";
 
 test("uploading failure", async () => {
-  mocker(mocks.mockUploadCat(serverError({ message: "some error" })));
+  mocks.mockUploadCat(serverError({ message: "some error" }));
   render(
     <Wrapped>
       <UploadCat />

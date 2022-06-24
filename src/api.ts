@@ -1,5 +1,6 @@
-import { MockedRequest, ResponseResolver, RestContext } from "msw";
+import { MockedRequest, ResponseResolver, rest, RestContext } from "msw";
 import { runRequest } from "./request";
+import { SetupServerApi } from "msw/node";
 
 type ApiPath = string;
 type ApiCapture = string;
@@ -169,12 +170,6 @@ type AddMockHandler<T> = T extends [infer F, ...infer Rest]
   ? [MockHandler<F>, ...AddMockHandler<Rest>]
   : [];
 
-export type MockApiData = {
-  url: string;
-  method: ApiMethod;
-  handler: ResponseResolver<MockedRequest, RestContext>;
-};
-
 type MockHandler<R> = R extends Path<infer N>
   ? MockHandler<N>
   : R extends Or<infer N, infer M>
@@ -182,7 +177,7 @@ type MockHandler<R> = R extends Path<infer N>
   : R extends Any<infer P>
   ? AddMockHandler<P>
   : R extends Method<infer T>
-  ? (s: Response<T>) => MockApiData
+  ? (...s: Response<T>[]) => void
   : R extends Capture<infer S>
   ? (c: string) => MockHandler<S>
   : R extends Header<infer S>
@@ -193,49 +188,67 @@ type MockHandler<R> = R extends Path<infer N>
   ? MockHandler<S>
   : never;
 
+const MAP_METHOD_TO_MSW = {
+  GET: rest.get,
+  POST: rest.post,
+  DELETE: rest.delete,
+  OPTIONS: rest.options,
+};
+
 export function getMockHandlers<A extends AnyApi>(
   a: A,
-  path: string
+  path: string,
+  server: SetupServerApi
 ): MockHandler<typeof a> {
   switch (a.type) {
     case "METHOD": {
-      return (<T>({ statusCode, data }: Response<T>) => {
+      return (<T>(...mockData: Response<T>[]) => {
         // TODO: Specify content type in api, then can use json/other stuff here
-        const handler: ResponseResolver<MockedRequest, RestContext> = (
-          req,
-          res,
-          ctx
-        ) => res(ctx.status(statusCode), ctx.json<T>(data));
-        return {
-          url: path,
-          method: a.data,
-          handler,
-        };
+        const mockDataArray: Response<T>[] = [...mockData];
+        const method = MAP_METHOD_TO_MSW[a.data];
+
+        return server.use(
+          method(path, (req, res, context) => {
+            const { statusCode, data } = (
+              mockDataArray.length > 1
+                ? mockDataArray.shift()
+                : mockDataArray[0]
+            ) as Response<T>;
+            const handler: ResponseResolver<MockedRequest, RestContext> = (
+              req,
+              res,
+              ctx
+            ) => res(ctx.status(statusCode), ctx.json<T>(data));
+            return handler(req, res, context);
+          })
+        );
       }) as MockHandler<typeof a>;
     }
     case "PATH": {
       const nextAcc = `${path}/${a.data}`;
-      return getMockHandlers(a.next, nextAcc) as MockHandler<typeof a>;
+      return getMockHandlers(a.next, nextAcc, server) as MockHandler<typeof a>;
     }
     case "OR": {
       const [l, r] = a.next;
       return [
-        getMockHandlers(l, path),
-        getMockHandlers(r, path),
+        getMockHandlers(l, path, server),
+        getMockHandlers(r, path, server),
       ] as MockHandler<typeof a>;
     }
     case "ANY": {
       const xs = a.next;
-      return xs.map((x: A) => getMockHandlers(x, path)) as MockHandler<
+      return xs.map((x: A) => getMockHandlers(x, path, server)) as MockHandler<
         typeof a
       >;
     }
     case "CAPTURE": {
       return ((c: string) =>
-        getMockHandlers(a.next, `${path}/${c}`)) as MockHandler<typeof a>;
+        getMockHandlers(a.next, `${path}/${c}`, server)) as MockHandler<
+        typeof a
+      >;
     }
     default: {
-      return getMockHandlers(a.next, path) as MockHandler<typeof a>;
+      return getMockHandlers(a.next, path, server) as MockHandler<typeof a>;
     }
   }
 }
