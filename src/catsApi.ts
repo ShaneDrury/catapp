@@ -11,8 +11,8 @@ const favouritesApi = d
   .path("favourites")
   .any(
     d.get(r<Favourite[]>()),
-    d.capture(":favouriteId").delete_(r<{}>()),
-    d.body<{ image_id: string }>("JSON").post(r<{}>())
+    d.capture(":favouriteId").delete_(r()),
+    d.body<{ image_id: string }>("JSON").post(r())
   );
 
 const votesApi = d
@@ -21,8 +21,8 @@ const votesApi = d
     d
       .queryParam<number>("page")
       .get(withHeaders("pagination-count")(r<Vote[]>())),
-    d.body<{ image_id: string; value: 1 }>("JSON").post(r<{}>()),
-    d.body<{ image_id: string; value: 0 }>("JSON").post(r<{}>())
+    d.body<{ image_id: string; value: 1 }>("JSON").post(r()),
+    d.body<{ image_id: string; value: 0 }>("JSON").post(r())
   );
 
 const catsApi = d

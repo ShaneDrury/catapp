@@ -34,17 +34,17 @@ export const get = <N>(next: N): Method<N> => ({
   data: "GET",
   next,
 });
-export const post = <N>(next: N): Method<N> => ({
+export const post = <N = {}>(next: N): Method<N> => ({
   type: "METHOD",
   data: "POST",
   next,
 });
-export const delete_ = <N>(next: N): Method<N> => ({
+export const delete_ = <N = {}>(next: N): Method<N> => ({
   type: "METHOD",
   data: "DELETE",
   next,
 });
-export const options = <N>(next: N): Method<N> => ({
+export const options = <N = {}>(next: N): Method<N> => ({
   type: "METHOD",
   data: "OPTIONS",
   next,
