@@ -1,5 +1,5 @@
 import { Cat, Favourite, Vote } from "./types";
-import { Dsl, getClientHandlers } from "./api";
+import { Dsl, getClientHandlers, r, withHeaders } from "./api";
 
 export const BASE_URL = "https://api.thecatapi.com/v1";
 
@@ -10,28 +10,30 @@ const d = Dsl.empty();
 const favouritesApi = d
   .path("favourites")
   .any(
-    d.get<Favourite[]>(),
-    d.capture(":favouriteId").delete_<{}>(),
-    d.body<{ image_id: string }>("JSON").post<{}>()
+    d.get(r<Favourite[]>()),
+    d.capture(":favouriteId").delete_(r<{}>()),
+    d.body<{ image_id: string }>("JSON").post(r<{}>())
   );
 
 const votesApi = d
   .path("votes")
   .any(
-    d.get<Vote[]>(),
-    d.body<{ image_id: string; value: 1 }>("JSON").post<{}>(),
-    d.body<{ image_id: string; value: 0 }>("JSON").post<{}>()
+    d
+      .queryParam<number>("page")
+      .get(withHeaders("pagination-count")(r<Vote[]>())),
+    d.body<{ image_id: string; value: 1 }>("JSON").post(r<{}>()),
+    d.body<{ image_id: string; value: 0 }>("JSON").post(r<{}>())
   );
 
 const catsApi = d
   .path("images")
-  .any(d.queryParam<number>("limit").get<Cat[]>());
+  .any(d.queryParam<number>("limit").get(r<Cat[]>()));
 
 const uploadApi = d
   .path("images")
   .path("upload")
   .body<FormData>()
-  .post<{ message?: string }>();
+  .post(r<{ message?: string }>());
 
 export const api = d
   .header("x-api-key")

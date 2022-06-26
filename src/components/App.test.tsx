@@ -14,13 +14,17 @@ beforeEach(() => {
   mocks.mockAllFavourites(ok([{ id: "favourite_id", image_id: "cat_id" }]));
   // TODO: Check that vote up/down are separated
   // i.e. handle the body in the mock handler
+  // could pass in body to data callback
   mocks.mockVoteUp(ok({}));
   mocks.mockVoteDown(ok({}));
   mocks.mockAllVotes(
-    ok([
-      { value: 1, image_id: "cat_id" },
-      { value: 1, image_id: "cat_id" },
-    ])
+    ok(
+      [
+        { value: 1, image_id: "cat_id" },
+        { value: 1, image_id: "cat_id" },
+      ],
+      { "pagination-count": "2" }
+    )
   );
 });
 
@@ -49,20 +53,29 @@ test("happy path, rendering the score and buttons", async () => {
 
 test("voting on a cat", async () => {
   mocks.mockAllVotes(
-    ok([
-      { value: 1, image_id: "cat_id" },
-      { value: 1, image_id: "cat_id" },
-    ]),
-    ok([
-      { value: 1, image_id: "cat_id" },
-      { value: 1, image_id: "cat_id" },
-      { value: 1, image_id: "cat_id" },
-    ]),
-    ok([
-      { value: 1, image_id: "cat_id" },
-      { value: 1, image_id: "cat_id" },
-    ]),
-    ok([{ value: 1, image_id: "cat_id" }])
+    ok(
+      [
+        { value: 1, image_id: "cat_id" },
+        { value: 1, image_id: "cat_id" },
+      ],
+      { "pagination-count": "2" }
+    ),
+    ok(
+      [
+        { value: 1, image_id: "cat_id" },
+        { value: 1, image_id: "cat_id" },
+        { value: 1, image_id: "cat_id" },
+      ],
+      { "pagination-count": "3" }
+    ),
+    ok(
+      [
+        { value: 1, image_id: "cat_id" },
+        { value: 1, image_id: "cat_id" },
+      ],
+      { "pagination-count": "2" }
+    ),
+    ok([{ value: 1, image_id: "cat_id" }], { "pagination-count": "1" })
   );
 
   render(

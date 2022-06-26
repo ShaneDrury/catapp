@@ -41,7 +41,23 @@ export const useFavourites = () => {
 
 export const useVotes = () => {
   const api = useCatApi();
-  const { data, ...rest } = useQuery<Vote[], string>("votes", api.getAllVotes);
+  const { data, ...rest } = useQuery<Vote[], string>("votes", async () => {
+    let page = 0;
+    const items: Vote[] = [];
+    while (true) {
+      const result = await api.getAllVotes(page)();
+      items.push(...result.data);
+      page += 1;
+      const totalCount = parseInt(
+        result.headers["pagination-count"] || "0",
+        10
+      );
+      if (items.length >= totalCount) {
+        break;
+      }
+    }
+    return items;
+  });
   const groupedVotes = React.useMemo(
     () => data && groupBy(data, (vote) => vote.image_id),
     [data]
