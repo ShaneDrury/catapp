@@ -3,8 +3,6 @@ import { Dsl, getClientHandlers, r, withHeaders } from "./api";
 
 export const BASE_URL = "https://api.thecatapi.com/v1";
 
-// TODO: Probably add page numbers for votes, as these go > 100 easily
-
 const d = Dsl.empty();
 
 const favouritesApi = d

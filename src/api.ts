@@ -381,7 +381,12 @@ export function getClientHandlers<A extends AnyApi>(
           body,
         });
         return a.next.type === "HEADER_RESPONSE"
-          ? { data: response.json, headers: response.headers }
+          ? {
+              data: response.json,
+              headers: Object.fromEntries(
+                a.next.headers.map((key) => [key, response.headers.get(key)])
+              ),
+            }
           : response.json;
       }) as ClientHandler<typeof a>;
     }

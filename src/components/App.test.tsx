@@ -26,6 +26,8 @@ beforeEach(() => {
       { "pagination-count": "2" }
     )
   );
+  mocks.mockPostFavourite(ok({}));
+  mocks.mockDeleteFavourite("favourite_id")(ok({}));
 });
 
 test("happy path, rendering the score and buttons", async () => {
@@ -99,8 +101,6 @@ test("voting on a cat", async () => {
 });
 
 test("favouriting a cat", async () => {
-  mocks.mockPostFavourite(ok({}));
-  mocks.mockDeleteFavourite("favourite_id")(ok({}));
   mocks.mockAllFavourites(
     ok([{ id: "favourite_id", image_id: "cat_id" }]),
     ok([]),
@@ -126,4 +126,33 @@ test("favouriting a cat", async () => {
       name: "Unfavourite cat cat_id",
     })
   ).toBeInTheDocument();
+});
+
+test("vote pagination works", async () => {
+  mocks.mockAllVotes(
+    ok(
+      [
+        { value: 1, image_id: "cat_id" },
+        { value: 1, image_id: "cat_id" },
+        { value: 1, image_id: "cat_id" },
+        { value: 1, image_id: "cat_id" },
+        { value: 1, image_id: "cat_id" },
+        { value: 1, image_id: "cat_id" },
+        { value: 1, image_id: "cat_id" },
+        { value: 1, image_id: "cat_id" },
+        { value: 1, image_id: "cat_id" },
+        { value: 1, image_id: "cat_id" },
+      ],
+      { "pagination-count": "11" }
+    ),
+    ok([{ value: 1, image_id: "cat_id" }], { "pagination-count": "11" })
+  );
+  render(
+    <Wrapped>
+      <App />
+    </Wrapped>
+  );
+  await waitForElementToBeRemoved(() => screen.queryByText("Loading!"));
+
+  expect(await screen.findByText("Score: 11")).toBeInTheDocument();
 });
