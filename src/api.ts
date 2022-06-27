@@ -116,7 +116,7 @@ type Paths<R> = R extends Path<infer N>
   R extends Method<infer T>
   ? string
   : R extends Capture<infer S>
-  ? (c: string) => Paths<S>
+  ? Paths<S>
   : R extends Header<infer S>
   ? Paths<S>
   : R extends QueryParam<infer S>
@@ -151,7 +151,7 @@ type AnyApi =
 function getPathsAcc<A extends AnyApi>(a: A, acc: string): Paths<typeof a> {
   switch (a.type) {
     case "METHOD": {
-      return acc as Paths<typeof a>;
+      return `${a.data} ${acc}` as Paths<typeof a>;
     }
     case "PATH": {
       const nextAcc = `${acc}/${a.data}`;
@@ -162,9 +162,7 @@ function getPathsAcc<A extends AnyApi>(a: A, acc: string): Paths<typeof a> {
       return [getPathsAcc(l, acc), getPathsAcc(r, acc)] as Paths<typeof a>;
     }
     case "CAPTURE": {
-      return ((c: string) => getPathsAcc(a.next, `${acc}/${c}`)) as Paths<
-        typeof a
-      >;
+      return getPathsAcc(a.next, `${acc}/${a.data}`) as Paths<typeof a>;
     }
     case "ANY": {
       const xs = a.next;
