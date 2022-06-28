@@ -6,7 +6,6 @@ import {
   RestHandler,
 } from "msw";
 import { runRequest } from "./request";
-import { SetupServerApi } from "msw/node";
 
 type ApiPath = string;
 type ApiCapture = string;
@@ -15,7 +14,6 @@ type ApiHeader = string;
 type ApiQueryParam = string;
 type ApiRequestBody = "JSON" | undefined;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type Method<N> = { type: "METHOD"; data: ApiMethod; next: N };
 type Path<S> = { type: "PATH"; data: ApiPath; next: S };
 type Or<S, T> = { type: "OR"; next: [S, T] };
@@ -233,10 +231,6 @@ export const serverError = (data: any): Response<any> => ({
   data,
 });
 
-type AddMockHandler<T> = T extends [infer F, ...infer Rest]
-  ? [MockHandler<F>, ...AddMockHandler<Rest>]
-  : [];
-
 type MockHandlerFromResponse<T> = T extends JsonResponse<infer D>
   ? {
       statusCode: number;
@@ -246,99 +240,12 @@ type MockHandlerFromResponse<T> = T extends JsonResponse<infer D>
   ? MockHandlerFromResponse<N> & { headers: ArrayObj<S> }
   : never;
 
-type MockHandler<R> = R extends Path<infer N>
-  ? MockHandler<N>
-  : R extends Or<infer N, infer M>
-  ? [MockHandler<N>, MockHandler<M>]
-  : R extends Any<infer P>
-  ? AddMockHandler<P>
-  : R extends Method<infer T>
-  ? (...s: MockHandlerFromResponse<T>[]) => void
-  : R extends Capture<infer S>
-  ? (c: string) => MockHandler<S>
-  : R extends Header<infer S>
-  ? MockHandler<S>
-  : R extends QueryParam<infer S>
-  ? MockHandler<S>
-  : R extends Body<infer S>
-  ? MockHandler<S>
-  : never;
-
 const MAP_METHOD_TO_MSW = {
   GET: rest.get,
   POST: rest.post,
   DELETE: rest.delete,
   OPTIONS: rest.options,
 };
-
-export function getMockHandlers<A extends AnyApi>(
-  a: A,
-  path: string,
-  server: SetupServerApi
-): MockHandler<typeof a> {
-  switch (a.type) {
-    case "METHOD": {
-      return (<T, S extends string>(...mockData: Response<T, S>[]) => {
-        // TODO: Specify content type in api, then can use json/other stuff here
-        const mockDataArray: Response<T, S>[] = [...mockData];
-        const method = MAP_METHOD_TO_MSW[a.data];
-        return server.use(
-          method(path, (req, res, context) => {
-            const { statusCode, data, headers } = (
-              mockDataArray.length > 1
-                ? mockDataArray.shift()
-                : mockDataArray[0]
-            ) as Response<T, S>;
-            const handler: ResponseResolver<MockedRequest, RestContext> = (
-              req,
-              res,
-              ctx
-            ) => {
-              if (a.next.type === "HEADER_RESPONSE") {
-                const responseHeaders = a.next.headers.map((key) =>
-                  ctx.set(key, headers[key])
-                );
-                return res(
-                  ctx.status(statusCode),
-                  ctx.json<T>(data),
-                  ...responseHeaders
-                );
-              }
-              return res(ctx.status(statusCode), ctx.json<T>(data));
-            };
-            return handler(req, res, context);
-          })
-        );
-      }) as MockHandler<typeof a>;
-    }
-    case "PATH": {
-      const nextAcc = `${path}/${a.data}`;
-      return getMockHandlers(a.next, nextAcc, server) as MockHandler<typeof a>;
-    }
-    case "OR": {
-      const [l, r] = a.next;
-      return [
-        getMockHandlers(l, path, server),
-        getMockHandlers(r, path, server),
-      ] as MockHandler<typeof a>;
-    }
-    case "ANY": {
-      const xs = a.next;
-      return xs.map((x: A) => getMockHandlers(x, path, server)) as MockHandler<
-        typeof a
-      >;
-    }
-    case "CAPTURE": {
-      return ((c: string) =>
-        getMockHandlers(a.next, `${path}/${c}`, server)) as MockHandler<
-        typeof a
-      >;
-    }
-    default: {
-      return getMockHandlers(a.next, path, server) as MockHandler<typeof a>;
-    }
-  }
-}
 
 type AddClientHandler<T> = T extends [infer F, ...infer Rest]
   ? [ClientHandler<F>, ...AddClientHandler<Rest>]
@@ -547,88 +454,85 @@ export class Dsl<T> {
 // TODO: Change these as any's to the real return type
 // TODO: Could do e.g. d["foo"]["bar"] === Dsl.empty().path("foo").path("bar")
 
-type AddRuntimeMockHandler<T> = T extends [infer F, ...infer Rest]
-  ? [RuntimeMockHandler<F>, ...AddRuntimeMockHandler<Rest>]
+type AddMockHandler<T> = T extends [infer F, ...infer Rest]
+  ? [MockHandler<F>, ...AddMockHandler<Rest>]
   : [];
 
-type RuntimeMockHandler<R> = R extends Path<infer N>
-  ? RuntimeMockHandler<N>
+type MockHandler<R> = R extends Path<infer N>
+  ? MockHandler<N>
   : R extends Or<infer N, infer M>
-  ? [RuntimeMockHandler<N>, RuntimeMockHandler<M>]
+  ? [MockHandler<N>, MockHandler<M>]
   : R extends Any<infer P>
-  ? AddRuntimeMockHandler<P>
+  ? AddMockHandler<P>
   : R extends Method<infer T>
-  ? (s: MockHandlerFromResponse<T>) => RestHandler
+  ? (...s: MockHandlerFromResponse<T>[]) => RestHandler
   : R extends Capture<infer S>
-  ? (c: string) => RuntimeMockHandler<S>
+  ? (c: string) => MockHandler<S>
   : R extends Header<infer S>
-  ? RuntimeMockHandler<S>
+  ? MockHandler<S>
   : R extends QueryParam<infer S>
-  ? RuntimeMockHandler<S>
+  ? MockHandler<S>
   : R extends Body<infer S>
-  ? RuntimeMockHandler<S>
+  ? MockHandler<S>
   : never;
 
-export function getRuntimeMockHandlers<A extends AnyApi>(
+export function getMockHandlers<A extends AnyApi>(
   a: A,
   path: string
-): RuntimeMockHandler<typeof a> {
+): MockHandler<typeof a> {
   switch (a.type) {
     case "METHOD": {
-      return (<T, S extends string>(mockData: Response<T, S>) => {
+      return (<T, S extends string>(...mockResponses: Response<T, S>[]) => {
+        const mockResponsesArray = [...mockResponses];
         const method = MAP_METHOD_TO_MSW[a.data];
         const handler: ResponseResolver<MockedRequest, RestContext> = (
           req,
           res,
           ctx
         ) => {
+          const { statusCode, data, headers } = (
+            mockResponsesArray.length > 1
+              ? mockResponsesArray.shift()
+              : mockResponsesArray[0]
+          ) as Response<T, S>;
           if (a.next.type === "HEADER_RESPONSE") {
             const responseHeaders = a.next.headers.map((key) =>
-              ctx.set(key, mockData.headers[key])
+              ctx.set(key, headers[key])
             );
             return res(
-              ctx.status(mockData.statusCode),
-              ctx.json<T>(mockData.data),
+              ctx.status(statusCode),
+              ctx.json<T>(data),
               ...responseHeaders
             );
           }
-          return res(
-            ctx.status(mockData.statusCode),
-            ctx.json<T>(mockData.data)
-          );
+          return res(ctx.status(statusCode), ctx.json<T>(data));
         };
         return method(path, handler);
-      }) as RuntimeMockHandler<typeof a>;
+      }) as MockHandler<typeof a>;
     }
     case "PATH": {
       const nextAcc = `${path}/${a.data}`;
-      return getRuntimeMockHandlers(a.next, nextAcc) as RuntimeMockHandler<
-        typeof a
-      >;
+      return getMockHandlers(a.next, nextAcc) as MockHandler<typeof a>;
     }
     case "OR": {
       const [l, r] = a.next;
       return [
-        getRuntimeMockHandlers(l, path),
-        getRuntimeMockHandlers(r, path),
-      ] as RuntimeMockHandler<typeof a>;
+        getMockHandlers(l, path),
+        getMockHandlers(r, path),
+      ] as MockHandler<typeof a>;
     }
     case "ANY": {
       const xs = a.next;
-      return xs.map((x: A) =>
-        getRuntimeMockHandlers(x, path)
-      ) as RuntimeMockHandler<typeof a>;
+      return xs.map((x: A) => getMockHandlers(x, path)) as MockHandler<
+        typeof a
+      >;
     }
     case "CAPTURE": {
       return ((c: string) =>
-        getRuntimeMockHandlers(a.next, `${path}/${c}`)) as RuntimeMockHandler<
-        typeof a
-      >;
+        getMockHandlers(a.next, `${path}/${c}`)) as MockHandler<typeof a>;
     }
     default: {
-      return getRuntimeMockHandlers(a.next, path) as RuntimeMockHandler<
-        typeof a
-      >;
+      return getMockHandlers(a.next, path) as MockHandler<typeof a>;
     }
   }
 }
