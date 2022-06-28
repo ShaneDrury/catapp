@@ -14,23 +14,24 @@ export const Wrapped = ({
   children: React.ReactNode;
   initialEntries?: string[];
 }) => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        refetchOnWindowFocus: false,
-        suspense: true,
-        retry: false,
-      },
-    },
-  });
+  const [queryClient] = React.useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            refetchOnWindowFocus: false,
+            retry: false,
+            cacheTime: Infinity,
+          },
+        },
+      })
+  );
   return (
-    <MemoryRouter initialEntries={initialEntries}>
-      <QueryClientProvider client={queryClient}>
-        <CatApiContext.Provider value={apiClient}>
-          {children}
-        </CatApiContext.Provider>
-      </QueryClientProvider>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <CatApiContext.Provider value={apiClient}>
+        <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+      </CatApiContext.Provider>
+    </QueryClientProvider>
   );
 };
 

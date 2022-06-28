@@ -215,7 +215,7 @@ export const ok = <T, H extends string>(
     ...(headers && { headers }),
   } as any);
 
-export const serverError = <T>(data: T): Response<T> => ({
+export const serverError = (data: any): Response<any> => ({
   statusCode: 500,
   data,
 });

@@ -18,12 +18,12 @@ export const useCatApi = () => {
 
 export const useCats = () => {
   const api = useCatApi();
-  return useQuery<ICat[], string>("cats", api.getAllImages(100));
+  return useQuery<ICat[], { message: string }>("cats", api.getAllImages(100));
 };
 
 export const useFavourites = () => {
   const api = useCatApi();
-  const { data, ...rest } = useQuery<Favourite[], string>(
+  const { data, ...rest } = useQuery<Favourite[], { message: string }>(
     "favourites",
     api.getAllFavourites
   );
@@ -41,23 +41,26 @@ export const useFavourites = () => {
 
 export const useVotes = () => {
   const api = useCatApi();
-  const { data, ...rest } = useQuery<Vote[], string>("votes", async () => {
-    let page = 0;
-    const items: Vote[] = [];
-    while (true) {
-      const result = await api.getAllVotes(page)();
-      items.push(...result.data);
-      page += 1;
-      const totalCount = parseInt(
-        result.headers["pagination-count"] || "0",
-        10
-      );
-      if (items.length >= totalCount) {
-        break;
+  const { data, ...rest } = useQuery<Vote[], { message: string }>(
+    "votes",
+    async () => {
+      let page = 0;
+      const items: Vote[] = [];
+      while (true) {
+        const result = await api.getAllVotes(page)();
+        items.push(...result.data);
+        page += 1;
+        const totalCount = parseInt(
+          result.headers["pagination-count"] || "0",
+          10
+        );
+        if (items.length >= totalCount) {
+          break;
+        }
       }
+      return items;
     }
-    return items;
-  });
+  );
   const groupedVotes = React.useMemo(
     () => data && groupBy(data, (vote) => vote.image_id),
     [data]

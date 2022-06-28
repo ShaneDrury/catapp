@@ -6,7 +6,7 @@ import {
 import App from "./App";
 import { Wrapped } from "./testing";
 import * as mocks from "./mocks";
-import { ok } from "../api";
+import { ok, serverError } from "../api";
 import userEvent from "@testing-library/user-event";
 
 beforeEach(() => {
@@ -155,4 +155,16 @@ test("vote pagination works", async () => {
   await waitForElementToBeRemoved(() => screen.queryByText("Loading!"));
 
   expect(await screen.findByText("Score: 11")).toBeInTheDocument();
+});
+
+test("cats fail to load", async () => {
+  mocks.mockAllImages(serverError({ message: "Some error" }));
+  render(
+    <Wrapped>
+      <App />
+    </Wrapped>
+  );
+  await waitForElementToBeRemoved(() => screen.queryByText("Loading!"));
+
+  expect(await screen.findByText("Error! Some error")).toBeInTheDocument();
 });

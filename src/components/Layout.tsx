@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React from "react";
 import AppBarLink from "./AppBarLink";
 import {
   AppBar,
@@ -9,8 +9,6 @@ import {
   Typography,
 } from "@mui/material";
 import PetsIcon from "@mui/icons-material/Pets";
-
-const LoadingIndicator = () => <div>Loading!</div>;
 
 const Offset = styled("div")(({ theme }) => theme.mixins.toolbar);
 
@@ -28,9 +26,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => (
     </AppBar>
     <Offset />
     <main>
-      <Container>
-        <Suspense fallback={<LoadingIndicator />}>{children}</Suspense>
-      </Container>
+      <Container>{children}</Container>
     </main>
   </>
 );

@@ -27,11 +27,7 @@ const catsApi = d
   .path("images")
   .any(d.queryParam<number>("limit").get(r<Cat[]>()));
 
-const uploadApi = d
-  .path("images")
-  .path("upload")
-  .body<FormData>()
-  .post(r<{ message?: string }>());
+const uploadApi = d.path("images").path("upload").body<FormData>().post(r());
 
 export const api = d
   .header("x-api-key")

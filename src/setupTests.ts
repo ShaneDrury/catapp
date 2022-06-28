@@ -7,8 +7,8 @@ import { setLogger } from "react-query";
 import { server } from "./components/testing";
 
 setLogger({
-  log: () => {},
-  warn: () => {},
+  log: console.log,
+  warn: console.warn,
   error: () => {},
 });
 
