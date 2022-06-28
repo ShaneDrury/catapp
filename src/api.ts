@@ -211,15 +211,22 @@ export const r = jsonResponse;
 // TODO: Could make this a class based dsl
 // withHeaders(["foo"] as const).jsonResponse<string>()
 
-export const ok = <T, H extends string>(
+export function ok<T>(data: T): Response<T>;
+export function ok<T>(data: T, headers: {}): Response<T>;
+export function ok<T, H extends string>(
+  data: T,
+  headers: { [key in H]: string }
+): Response<T, H>;
+export function ok<T, H extends string>(
   data: T,
   headers?: { [key in H]: string }
-): H extends string ? Response<T, H> : Response<T> =>
-  ({
+) {
+  return {
     statusCode: 200,
     data,
     ...(headers && { headers }),
-  } as any);
+  };
+}
 
 export const serverError = (data: any): Response<any> => ({
   statusCode: 500,
