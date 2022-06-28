@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import UploadCat from "./UploadCat";
 import { server, Wrapped } from "./testing";
-import * as mocks from "./mocks";
+import mocks from "../mocks/testMocks";
 import userEvent from "@testing-library/user-event";
 import { ok, serverError } from "../api";
 import { Route, Routes } from "react-router-dom";

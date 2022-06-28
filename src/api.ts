@@ -476,7 +476,7 @@ type MockHandler<R> = R extends Path<infer N>
   ? MockHandler<S>
   : never;
 
-export function getMockHandlers<A extends AnyApi>(
+export function generateMockHandlers<A extends AnyApi>(
   a: A,
   path: string
 ): MockHandler<typeof a> {
@@ -512,27 +512,27 @@ export function getMockHandlers<A extends AnyApi>(
     }
     case "PATH": {
       const nextAcc = `${path}/${a.data}`;
-      return getMockHandlers(a.next, nextAcc) as MockHandler<typeof a>;
+      return generateMockHandlers(a.next, nextAcc) as MockHandler<typeof a>;
     }
     case "OR": {
       const [l, r] = a.next;
       return [
-        getMockHandlers(l, path),
-        getMockHandlers(r, path),
+        generateMockHandlers(l, path),
+        generateMockHandlers(r, path),
       ] as MockHandler<typeof a>;
     }
     case "ANY": {
       const xs = a.next;
-      return xs.map((x: A) => getMockHandlers(x, path)) as MockHandler<
+      return xs.map((x: A) => generateMockHandlers(x, path)) as MockHandler<
         typeof a
       >;
     }
     case "CAPTURE": {
       return ((c: string) =>
-        getMockHandlers(a.next, `${path}/${c}`)) as MockHandler<typeof a>;
+        generateMockHandlers(a.next, `${path}/${c}`)) as MockHandler<typeof a>;
     }
     default: {
-      return getMockHandlers(a.next, path) as MockHandler<typeof a>;
+      return generateMockHandlers(a.next, path) as MockHandler<typeof a>;
     }
   }
 }

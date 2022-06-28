@@ -1,22 +1,23 @@
-import { getMockHandlers, ok } from "../api";
+import { generateMockHandlers } from "../api";
 import { api } from "../catsApi";
 
-const [
-  [
-    [mockAllImages],
-    [mockAllFavourites, mockDeleteFavourite, mockPostFavourite],
-    [mockAllVotes, mockVoteUp, mockVoteDown],
-  ],
-  mockUploadCat,
-] = getMockHandlers(api, "https://api.thecatapi.com/v1");
-
-export const handlers = [
-  mockAllImages(ok([])),
-  mockAllFavourites(ok([])),
-  mockDeleteFavourite("favourite_id")(ok({})),
-  mockPostFavourite(ok({})),
-  mockAllVotes(ok([], { "pagination-count": "0" })),
-  mockVoteUp(ok({})),
-  mockVoteDown(ok({})),
-  mockUploadCat(ok({})),
-];
+export const getMockHandlers = (baseUrl: string) => {
+  const [
+    [
+      [mockAllImages],
+      [mockAllFavourites, mockDeleteFavourite, mockPostFavourite],
+      [mockAllVotes, mockVoteUp, mockVoteDown],
+    ],
+    mockUploadCat,
+  ] = generateMockHandlers(api, baseUrl);
+  return {
+    mockAllImages,
+    mockAllFavourites,
+    mockDeleteFavourite,
+    mockPostFavourite,
+    mockAllVotes,
+    mockVoteUp,
+    mockVoteDown,
+    mockUploadCat,
+  };
+};

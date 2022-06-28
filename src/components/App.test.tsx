@@ -5,7 +5,7 @@ import {
 } from "@testing-library/react";
 import App from "./App";
 import { server, Wrapped } from "./testing";
-import * as mocks from "./mocks";
+import mocks from "../mocks/testMocks";
 import { ok, serverError } from "../api";
 import userEvent from "@testing-library/user-event";
 
