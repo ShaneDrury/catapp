@@ -1,4 +1,10 @@
-import { MockedRequest, ResponseResolver, rest, RestContext } from "msw";
+import {
+  MockedRequest,
+  ResponseResolver,
+  rest,
+  RestContext,
+  RestHandler,
+} from "msw";
 import { runRequest } from "./request";
 import { SetupServerApi } from "msw/node";
 
@@ -269,10 +275,6 @@ export function getMockHandlers<A extends AnyApi>(
         // TODO: Specify content type in api, then can use json/other stuff here
         const mockDataArray: Response<T, S>[] = [...mockData];
         const method = MAP_METHOD_TO_MSW[a.data];
-        // inspect responseType
-        // e.g. if header, we grab those headers from response
-        // and return something different
-        // if not just return directly
         return server.use(
           method(path, (req, res, context) => {
             const { statusCode, data, headers } = (
@@ -537,3 +539,89 @@ export class Dsl<T> {
 
 // TODO: Change these as any's to the real return type
 // TODO: Could do e.g. d["foo"]["bar"] === Dsl.empty().path("foo").path("bar")
+
+type AddRuntimeMockHandler<T> = T extends [infer F, ...infer Rest]
+  ? [RuntimeMockHandler<F>, ...AddRuntimeMockHandler<Rest>]
+  : [];
+
+type RuntimeMockHandler<R> = R extends Path<infer N>
+  ? RuntimeMockHandler<N>
+  : R extends Or<infer N, infer M>
+  ? [RuntimeMockHandler<N>, RuntimeMockHandler<M>]
+  : R extends Any<infer P>
+  ? AddRuntimeMockHandler<P>
+  : R extends Method<infer T>
+  ? (s: MockHandlerFromResponse<T>) => RestHandler
+  : R extends Capture<infer S>
+  ? (c: string) => RuntimeMockHandler<S>
+  : R extends Header<infer S>
+  ? RuntimeMockHandler<S>
+  : R extends QueryParam<infer S>
+  ? RuntimeMockHandler<S>
+  : R extends Body<infer S>
+  ? RuntimeMockHandler<S>
+  : never;
+
+export function getRuntimeMockHandlers<A extends AnyApi>(
+  a: A,
+  path: string
+): RuntimeMockHandler<typeof a> {
+  switch (a.type) {
+    case "METHOD": {
+      return (<T, S extends string>(mockData: Response<T, S>) => {
+        const method = MAP_METHOD_TO_MSW[a.data];
+        const handler: ResponseResolver<MockedRequest, RestContext> = (
+          req,
+          res,
+          ctx
+        ) => {
+          if (a.next.type === "HEADER_RESPONSE") {
+            const responseHeaders = a.next.headers.map((key) =>
+              ctx.set(key, mockData.headers[key])
+            );
+            return res(
+              ctx.status(mockData.statusCode),
+              ctx.json<T>(mockData.data),
+              ...responseHeaders
+            );
+          }
+          return res(
+            ctx.status(mockData.statusCode),
+            ctx.json<T>(mockData.data)
+          );
+        };
+        return method(path, handler);
+      }) as RuntimeMockHandler<typeof a>;
+    }
+    case "PATH": {
+      const nextAcc = `${path}/${a.data}`;
+      return getRuntimeMockHandlers(a.next, nextAcc) as RuntimeMockHandler<
+        typeof a
+      >;
+    }
+    case "OR": {
+      const [l, r] = a.next;
+      return [
+        getRuntimeMockHandlers(l, path),
+        getRuntimeMockHandlers(r, path),
+      ] as RuntimeMockHandler<typeof a>;
+    }
+    case "ANY": {
+      const xs = a.next;
+      return xs.map((x: A) =>
+        getRuntimeMockHandlers(x, path)
+      ) as RuntimeMockHandler<typeof a>;
+    }
+    case "CAPTURE": {
+      return ((c: string) =>
+        getRuntimeMockHandlers(a.next, `${path}/${c}`)) as RuntimeMockHandler<
+        typeof a
+      >;
+    }
+    default: {
+      return getRuntimeMockHandlers(a.next, path) as RuntimeMockHandler<
+        typeof a
+      >;
+    }
+  }
+}
