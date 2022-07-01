@@ -180,7 +180,9 @@ function getPathsAcc<A extends AnyApi>(a: A, acc: string): Paths<typeof a> {
 
 export const getPaths = <A extends AnyApi>(a: A) => getPathsAcc(a, "");
 
-type Response<T, S extends string | undefined = undefined> = S extends string
+type Response<T, S extends string | undefined = undefined> = [S] extends [
+  string
+]
   ? {
       statusCode: number;
       data: T;
@@ -226,10 +228,15 @@ export function ok<T, H extends string>(
   };
 }
 
-export const serverError = (data: any): Response<any> => ({
-  statusCode: 500,
-  data,
-});
+export function serverError(data: any): Response<any, any> {
+  return {
+    statusCode: 500,
+    data,
+    headers: {
+      dummy: "value",
+    },
+  };
+}
 
 type MockHandlerFromResponse<T> = T extends JsonResponse<infer D>
   ? {
@@ -294,6 +301,20 @@ export function getClientHandlers<A extends AnyApi>(
           headers,
           body,
         });
+        // we may have enough data to check the status code too
+        // say we had validation status code 422
+        // we'd want that as a response rather than raised as an exception
+        // so could generate list of accepted status codes
+        // and raise if outside of that
+        // but then in the client handler
+        // why would we want to check if the response is 500 for instance?
+        // that would be an exception
+
+        // so the alternative responses feel more appropriate for valid 2xx-4xx responses
+        // and 5xx are exceptional
+
+        // mock handler would use it as a sum type - can give any of the responses
+        // and be valid
         return a.next.type === "HEADER_RESPONSE"
           ? {
               data: response.json,
@@ -494,7 +515,7 @@ export function generateMockHandlers<A extends AnyApi>(
             mockResponsesArray.length > 1
               ? mockResponsesArray.shift()
               : mockResponsesArray[0]
-          ) as Response<T, S>;
+          ) as Response<T, any>;
           if (a.next.type === "HEADER_RESPONSE") {
             const responseHeaders = a.next.headers.map((key) =>
               ctx.set(key, headers[key])

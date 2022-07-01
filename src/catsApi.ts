@@ -29,6 +29,9 @@ const catsApi = d
 
 const uploadApi = d.path("images").path("upload").body<FormData>().post(r());
 
+// upload api - this can return an error with a certain status code, which isn't really
+// modelled here
+
 export const api = d
   .header("x-api-key")
   .any(

@@ -178,3 +178,27 @@ test("cats fail to load", async () => {
 
   expect(await screen.findByText("Error! Some error")).toBeInTheDocument();
 });
+
+test("favourites fail to load", async () => {
+  server.use(mocks.mockAllFavourites(serverError({ message: "Some error" })));
+  render(
+    <Wrapped>
+      <App />
+    </Wrapped>
+  );
+  await waitForElementToBeRemoved(() => screen.queryByText("Loading!"));
+
+  expect(await screen.findByText("Error! Some error")).toBeInTheDocument();
+});
+
+test("votes fail to load", async () => {
+  server.use(mocks.mockAllVotes(serverError({ message: "Some error" })));
+  render(
+    <Wrapped>
+      <App />
+    </Wrapped>
+  );
+  await waitForElementToBeRemoved(() => screen.queryByText("Loading!"));
+
+  expect(await screen.findByText("Error! Some error")).toBeInTheDocument();
+});
