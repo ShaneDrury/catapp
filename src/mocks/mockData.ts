@@ -1,4 +1,4 @@
-import { ok } from "../api";
+import { ok } from "servo/mocks";
 import { getMockHandlers } from "./handlers";
 
 const {

@@ -1,5 +1,6 @@
 import { Cat, Favourite, Vote } from "./types";
-import { badRequest, Dsl, getClientHandlers, r, withHeaders } from "./api";
+import { badRequest, r, withHeaders, Dsl } from "servo/dsl";
+import { getClientHandlers } from "servo/clientHandlers";
 
 export const BASE_URL = "https://api.thecatapi.com/v1";
 

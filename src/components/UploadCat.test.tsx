@@ -3,7 +3,7 @@ import UploadCat from "./UploadCat";
 import { server, Wrapped } from "./testing";
 import mocks from "../mocks/testMocks";
 import userEvent from "@testing-library/user-event";
-import { ok, response } from "../api";
+import { ok, response } from "servo/mocks";
 import { Route, Routes } from "react-router-dom";
 
 test("uploading success", async () => {

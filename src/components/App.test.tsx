@@ -6,7 +6,7 @@ import {
 import App from "./App";
 import { server, Wrapped } from "./testing";
 import mocks from "../mocks/testMocks";
-import { ok, response, serverError } from "../api";
+import { ok, response } from "servo/mocks";
 import userEvent from "@testing-library/user-event";
 
 beforeEach(() => {
