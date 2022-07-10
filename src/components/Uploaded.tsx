@@ -2,36 +2,103 @@ import Cat from "./Cat";
 import React from "react";
 import { useCats, useFavourites, useVotes } from "../hooks";
 import { Grid } from "@mui/material";
+import { UseQueryResult } from "react-query";
+
+type Status = "success" | "idle" | "error" | "loading";
+
+const compareStatuses = (statuses: Status[]): Status => {
+  if (statuses.some((status) => status === "error")) {
+    return "error";
+  }
+  if (statuses.some((status) => status === "loading")) {
+    return "loading";
+  }
+  if (statuses.every((status) => status === "idle")) {
+    return "idle";
+  }
+  if (statuses.every((status) => status === "success" || status === "idle")) {
+    return "success";
+  }
+  throw new Error("huh");
+};
+
+type Datas<T> = T extends [UseQueryResult<infer D>, ...infer Rest]
+  ? [D, ...Datas<Rest>]
+  : [];
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type Errors<T> = T extends [UseQueryResult<infer D, infer E>, ...infer Rest]
+  ? [E, ...Errors<Rest>]
+  : [];
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type AnyError<T> = T extends [UseQueryResult<infer D, infer E>, ...infer Rest]
+  ? E | AnyError<Rest>
+  : never;
+
+type MakeUndefined<T> = T extends [UseQueryResult, ...infer Rest]
+  ? [undefined, ...MakeUndefined<Rest>]
+  : [];
+
+type CombineReturn<T> =
+  | {
+      data: Datas<T>;
+      status: "success";
+      errors: [];
+      error: undefined;
+    }
+  | {
+      data: MakeUndefined<T>;
+      status: "error";
+      errors: Errors<T>;
+      error: AnyError<T>;
+    }
+  | {
+      data: MakeUndefined<T>;
+      status: "loading";
+      errors: [];
+      error: undefined;
+    }
+  | {
+      data: MakeUndefined<T>;
+      status: "idle";
+      errors: [];
+      error: undefined;
+    };
+
+const combineQueryResults = <T extends any[]>(
+  ...queryResults: T
+): CombineReturn<T> => {
+  return {
+    data: queryResults.map((queryResult) => queryResult.data),
+    status: compareStatuses(
+      queryResults.map((queryResult) => queryResult.status)
+    ),
+    errors: queryResults.map((queryResult) => queryResult.error),
+    error: queryResults
+      .map((queryResult) => queryResult.error)
+      .find((err) => !!err),
+  } as CombineReturn<T>;
+};
 
 const Uploaded = () => {
-  const { data: cats, status: catsStatus, error: catsError } = useCats();
-  const {
-    data: favourites,
-    status: favouritesStatus,
-    error: favouritesError,
-  } = useFavourites();
-  const { data: votes, status: votesStatus, error: votesError } = useVotes();
-  // TODO: Create a combining function
-  if (
-    [catsStatus, favouritesStatus, votesStatus].some(
-      (status) => status === "loading"
-    )
-  ) {
+  const catsQuery = useCats();
+  const favouritesQuery = useFavourites();
+  const votesQuery = useVotes();
+  const combined = combineQueryResults(catsQuery, favouritesQuery, votesQuery);
+  if (combined.status === "loading" || combined.status === "idle") {
     return <div>Loading!</div>;
   }
-  const error = [catsError, favouritesError, votesError].find((err) => !!err);
+  const error = combined.error;
   if (error) {
     return <div>Error! {error.message}</div>;
   }
+  const [cats, favourites, votes] = combined.data;
   return (
     <Grid container spacing={2}>
-      {cats!.map((cat) => (
+      {cats.map((cat) => (
         <Grid item key={cat.id} xs={12} md={4}>
-          <Cat
-            {...cat}
-            favourite={favourites![cat.id]}
-            votes={votes![cat.id]}
-          />
+          <Cat {...cat} favourite={favourites[cat.id]} votes={votes[cat.id]} />
         </Grid>
       ))}
     </Grid>

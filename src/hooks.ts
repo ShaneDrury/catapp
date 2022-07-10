@@ -41,25 +41,21 @@ export const useCats = () => {
 
 export const useFavourites = () => {
   const api = useCatApi();
-  const { data, ...rest } = useQuery<Favourite[], { message: string }>(
+  return useQuery<Record<string, Favourite>, { message: string }>(
     "favourites",
-    handle200(api.getAllFavourites)
-  );
-  const groupedFavourites = React.useMemo(
-    () =>
-      data &&
-      data.reduce<Record<string, Favourite>>(
+    async () => {
+      const data = await handle200(api.getAllFavourites)();
+      return data.reduce<Record<string, Favourite>>(
         (acc, favourite) => ({ ...acc, [favourite.image_id]: favourite }),
         {}
-      ),
-    [data]
+      );
+    }
   );
-  return { ...rest, data: groupedFavourites };
 };
 
 export const useVotes = () => {
   const api = useCatApi();
-  const { data, ...rest } = useQuery<Vote[], { message: string }>(
+  return useQuery<Record<string, Vote[]>, { message: string }>(
     "votes",
     async () => {
       let page = 0;
@@ -80,14 +76,9 @@ export const useVotes = () => {
           throw new Error(result.data.message);
         }
       }
-      return items;
+      return groupBy(items, (vote) => vote.image_id);
     }
   );
-  const groupedVotes = React.useMemo(
-    () => data && groupBy(data, (vote) => vote.image_id),
-    [data]
-  );
-  return { ...rest, data: groupedVotes };
 };
 
 export const useUploadCat = () => {
