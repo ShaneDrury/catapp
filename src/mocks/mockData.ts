@@ -20,8 +20,8 @@ export const mockData = [
     ])
   ),
   mockAllFavourites(ok([{ id: "1", image_id: "1" }])),
-  mockDeleteFavourite("favourite_id")(ok({})),
-  mockPostFavourite(ok({})),
+  mockDeleteFavourite("1")(ok()),
+  mockPostFavourite(ok()),
   mockAllVotes(
     ok(
       [
@@ -39,7 +39,7 @@ export const mockData = [
       { "pagination-count": "4" }
     )
   ),
-  mockVoteUp(ok({})),
-  mockVoteDown(ok({})),
-  mockUploadCat(ok({})),
+  mockVoteUp(ok()),
+  mockVoteDown(ok()),
+  mockUploadCat(ok()),
 ];

@@ -11,6 +11,7 @@ const Uploaded = () => {
     error: favouritesError,
   } = useFavourites();
   const { data: votes, status: votesStatus, error: votesError } = useVotes();
+  // TODO: Create a combining function
   if (
     [catsStatus, favouritesStatus, votesStatus].some(
       (status) => status === "loading"

@@ -6,7 +6,7 @@ import {
 import App from "./App";
 import { server, Wrapped } from "./testing";
 import mocks from "../mocks/testMocks";
-import { ok, serverError } from "../api";
+import { ok, response, serverError } from "../api";
 import userEvent from "@testing-library/user-event";
 
 beforeEach(() => {
@@ -17,8 +17,8 @@ beforeEach(() => {
   // TODO: Check that vote up/down are separated
   // i.e. handle the body in the mock handler
   // could pass in body to data callback
-  server.use(mocks.mockVoteUp(ok({})));
-  server.use(mocks.mockVoteDown(ok({})));
+  server.use(mocks.mockVoteUp(ok()));
+  server.use(mocks.mockVoteDown(ok()));
   server.use(
     mocks.mockAllVotes(
       ok(
@@ -30,8 +30,8 @@ beforeEach(() => {
       )
     )
   );
-  server.use(mocks.mockPostFavourite(ok({})));
-  server.use(mocks.mockDeleteFavourite("favourite_id")(ok({})));
+  server.use(mocks.mockPostFavourite(ok()));
+  server.use(mocks.mockDeleteFavourite("favourite_id")(ok()));
 });
 
 test("happy path, rendering the score and buttons", async () => {
@@ -168,7 +168,7 @@ test("vote pagination works", async () => {
 });
 
 test("cats fail to load", async () => {
-  server.use(mocks.mockAllImages(serverError({ message: "Some error" })));
+  server.use(mocks.mockAllImages(response({ message: "Some error" }, 400)));
   render(
     <Wrapped>
       <App />
@@ -180,7 +180,7 @@ test("cats fail to load", async () => {
 });
 
 test("favourites fail to load", async () => {
-  server.use(mocks.mockAllFavourites(serverError({ message: "Some error" })));
+  server.use(mocks.mockAllFavourites(response({ message: "Some error" }, 400)));
   render(
     <Wrapped>
       <App />
@@ -192,7 +192,7 @@ test("favourites fail to load", async () => {
 });
 
 test("votes fail to load", async () => {
-  server.use(mocks.mockAllVotes(serverError({ message: "Some error" })));
+  server.use(mocks.mockAllVotes(response({ message: "Some error" }, 400)));
   render(
     <Wrapped>
       <App />

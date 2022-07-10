@@ -130,20 +130,19 @@ type Paths<R> = R extends Path<infer N>
   : never;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-type JsonResponse<T> = {
-  type: "JSON_RESPONSE";
-};
-
-type HeaderResponse<N, S extends string> = {
+type HeaderResponse<T, S extends number, H extends string> = {
   type: "HEADER_RESPONSE";
-  headers: S[];
-  next: N;
+  status: S;
+  headers: H[];
 };
 
-type AnyResponse = JsonResponse<any> | HeaderResponse<any, any>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type PlainResponse<T, S extends number> = { type: "PLAIN_RESPONSE"; status: S };
+
+type AnyResponse = PlainResponse<any, any> | HeaderResponse<any, any, any>;
 
 type AnyApi =
-  | Method<AnyResponse>
+  | Method<AnyResponse[]>
   | Capture<any>
   | Path<any>
   | Or<any, any>
@@ -180,30 +179,37 @@ function getPathsAcc<A extends AnyApi>(a: A, acc: string): Paths<typeof a> {
 
 export const getPaths = <A extends AnyApi>(a: A) => getPathsAcc(a, "");
 
-type Response<T, S extends string | undefined = undefined> = [S] extends [
-  string
-]
+type Response<T, S extends number, H extends string | undefined = undefined> = [
+  H
+] extends [string]
   ? {
-      statusCode: number;
+      statusCode: S;
       data: T;
-      headers: ArrayObj<S>;
+      headers: ArrayObj<H>;
     }
   : {
-      statusCode: number;
+      statusCode: S;
       data: T;
     };
 
-// consider just inlining N/next instead of higher order
 export const withHeaders =
-  <S extends string>(...headers: S[]) =>
-  <N>(next: N): HeaderResponse<N, typeof headers[number]> => ({
-    type: "HEADER_RESPONSE",
+  <H extends string>(...headers: H[]) =>
+  <T, S extends number>(
+    next: PlainResponse<T, S>
+  ): HeaderResponse<T, S, typeof headers[number]> => ({
+    ...next,
     headers,
-    next,
+    type: "HEADER_RESPONSE",
   });
 
-export const jsonResponse = <T>(): JsonResponse<T> => ({
-  type: "JSON_RESPONSE",
+export const jsonResponse = <T>(): PlainResponse<T, 200> => ({
+  type: "PLAIN_RESPONSE",
+  status: 200,
+});
+
+export const badRequest = <T>(): PlainResponse<T, 400> => ({
+  type: "PLAIN_RESPONSE",
+  status: 400,
 });
 
 export const r = jsonResponse;
@@ -211,41 +217,58 @@ export const r = jsonResponse;
 // TODO: Could make this a class based dsl
 // withHeaders(["foo"] as const).jsonResponse<string>()
 
-export function ok<T>(data: T): Response<T>;
-export function ok<T>(data: T, headers: {}): Response<T>;
+export function ok(): Response<never, 200>;
+export function ok<T>(data: T): Response<T, 200>;
+export function ok<T>(data: T, headers: {}): Response<T, 200>;
 export function ok<T, H extends string>(
   data: T,
   headers: { [key in H]: string }
-): Response<T, H>;
+): Response<T, 200, H>;
 export function ok<T, H extends string>(
-  data: T,
+  data?: T,
   headers?: { [key in H]: string }
 ) {
   return {
     statusCode: 200,
-    data,
+    data: data || {},
     ...(headers && { headers }),
   };
 }
 
-export function serverError(data: any): Response<any, any> {
+export function serverError(data: any): Response<any, 500> {
   return {
     statusCode: 500,
     data,
-    headers: {
-      dummy: "value",
-    },
   };
 }
 
-type MockHandlerFromResponse<T> = T extends JsonResponse<infer D>
-  ? {
-      statusCode: number;
-      data: D;
-    }
-  : T extends HeaderResponse<infer N, infer S>
-  ? MockHandlerFromResponse<N> & { headers: ArrayObj<S> }
-  : never;
+export function response(): Response<never, 200>;
+export function response<T>(data: T): Response<T, 200>;
+export function response<T, S extends number>(
+  data: T,
+  status: S
+): Response<T, S>;
+export function response<T, S extends number>(
+  data: T,
+  status: S,
+  headers: {}
+): Response<T, S>;
+export function response<T, S extends number, H extends string>(
+  data: T,
+  status: S,
+  headers: { [key in H]: string }
+): Response<T, S, H>;
+export function response<T, S extends number, H extends string>(
+  data?: T,
+  status?: S,
+  headers?: { [key in H]: string }
+) {
+  return {
+    statusCode: status || 200,
+    data: data || {},
+    ...(headers && { headers }),
+  };
+}
 
 const MAP_METHOD_TO_MSW = {
   GET: rest.get,
@@ -258,10 +281,14 @@ type AddClientHandler<T> = T extends [infer F, ...infer Rest]
   ? [ClientHandler<F>, ...AddClientHandler<Rest>]
   : [];
 
-type ResponseTypeToData<T> = T extends JsonResponse<infer S>
-  ? S
-  : T extends HeaderResponse<infer N, infer S>
-  ? { headers: ArrayObj<S>; data: ResponseTypeToData<N> }
+type ResponseTypeToData<T> = T extends HeaderResponse<infer D, infer S, infer H>
+  ? { data: D; status: S; headers: ArrayObj<H> }
+  : T extends PlainResponse<infer D, infer S>
+  ? { data: D; status: S }
+  : never;
+
+type ArrayResponseType<T> = T extends [infer R, ...infer Rest]
+  ? ResponseTypeToData<R> | ArrayResponseType<Rest>
   : never;
 
 type ArrayObj<T extends string> = { [key in T]: string };
@@ -272,8 +299,8 @@ type ClientHandler<R> = R extends Path<infer N>
   ? [ClientHandler<N>, ClientHandler<M>]
   : R extends Any<infer P>
   ? AddClientHandler<P>
-  : R extends Method<infer T>
-  ? () => Promise<ResponseTypeToData<T>>
+  : R extends Method<infer N>
+  ? () => Promise<ArrayResponseType<N>>
   : R extends Capture<infer S>
   ? (c: string) => ClientHandler<S>
   : R extends Header<infer S>
@@ -283,6 +310,14 @@ type ClientHandler<R> = R extends Path<infer N>
   : R extends Body<infer S, infer T>
   ? (body: T) => ClientHandler<S>
   : never;
+
+const getHeaders = (response: AnyResponse) => {
+  if (response.type === "HEADER_RESPONSE") {
+    return response.headers;
+  }
+};
+
+const getStatus = (response: AnyResponse): number => response.status;
 
 export function getClientHandlers<A extends AnyApi>(
   a: A,
@@ -301,28 +336,32 @@ export function getClientHandlers<A extends AnyApi>(
           headers,
           body,
         });
-        // we may have enough data to check the status code too
-        // say we had validation status code 422
-        // we'd want that as a response rather than raised as an exception
-        // so could generate list of accepted status codes
-        // and raise if outside of that
-        // but then in the client handler
-        // why would we want to check if the response is 500 for instance?
-        // that would be an exception
 
-        // so the alternative responses feel more appropriate for valid 2xx-4xx responses
-        // and 5xx are exceptional
+        const responseTemplate = a.next.find(
+          (responseTemplate) => getStatus(responseTemplate) === response.status
+        );
 
-        // mock handler would use it as a sum type - can give any of the responses
-        // and be valid
-        return a.next.type === "HEADER_RESPONSE"
-          ? {
-              data: response.json,
+        if (responseTemplate) {
+          const json = await response.json();
+          const headers = getHeaders(responseTemplate);
+          if (headers) {
+            return {
+              data: json,
+              status: response.status,
               headers: Object.fromEntries(
-                a.next.headers.map((key) => [key, response.headers.get(key)])
+                headers.map((key) => [key, response.headers.get(key)])
               ),
-            }
-          : response.json;
+            };
+          } else {
+            return {
+              data: json,
+              status: response.status,
+            };
+          }
+        }
+        throw new Error(
+          `Unexpected response ${response.status} ${response.statusText}`
+        );
       }) as ClientHandler<typeof a>;
     }
     case "PATH": {
@@ -424,20 +463,20 @@ export class Dsl<T> {
     this.dsl = dsl;
   }
   static empty = () => new Dsl((next) => next);
-  get = <G>(
-    next: G
+  get = <G extends any[]>(
+    ...next: G
   ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
     new DslLeaf(this.dsl(get<G>(next))) as any;
-  post = <G>(
-    next: G
+  post = <G extends any[]>(
+    ...next: G
   ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
     new DslLeaf(this.dsl(post<G>(next))) as any;
-  delete_ = <G>(
-    next: G
+  delete_ = <G extends any[]>(
+    ...next: G
   ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
     new DslLeaf(this.dsl(delete_<G>(next))) as any;
-  options = <G>(
-    next: G
+  options = <G extends any[]>(
+    ...next: G
   ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
     new DslLeaf(this.dsl(options<G>(next))) as any;
   p = (url: string) => this.path(url);
@@ -479,6 +518,27 @@ type AddMockHandler<T> = T extends [infer F, ...infer Rest]
   ? [MockHandler<F>, ...AddMockHandler<Rest>]
   : [];
 
+type MockHandlerFromResponse<T> = T extends HeaderResponse<
+  infer D,
+  infer S,
+  infer H
+>
+  ? {
+      headers: ArrayObj<H>;
+      statusCode: S;
+      data: D;
+    }
+  : T extends PlainResponse<infer D, infer S>
+  ? {
+      statusCode: S;
+      data: D;
+    }
+  : never;
+
+type ArrayMockHandlerType<T> = T extends [infer R, ...infer Rest]
+  ? MockHandlerFromResponse<R> | ArrayMockHandlerType<Rest>
+  : never;
+
 type MockHandler<R> = R extends Path<infer N>
   ? MockHandler<N>
   : R extends Or<infer N, infer M>
@@ -486,7 +546,7 @@ type MockHandler<R> = R extends Path<infer N>
   : R extends Any<infer P>
   ? AddMockHandler<P>
   : R extends Method<infer T>
-  ? (...s: MockHandlerFromResponse<T>[]) => RestHandler
+  ? (...s: ArrayMockHandlerType<T>[]) => RestHandler
   : R extends Capture<infer S>
   ? (c: string) => MockHandler<S>
   : R extends Header<infer S>
@@ -503,7 +563,9 @@ export function generateMockHandlers<A extends AnyApi>(
 ): MockHandler<typeof a> {
   switch (a.type) {
     case "METHOD": {
-      return (<T, S extends string>(...mockResponses: Response<T, S>[]) => {
+      return (<T, S extends number, H extends string>(
+        ...mockResponses: Response<T, S, H>[]
+      ) => {
         const mockResponsesArray = [...mockResponses];
         const method = MAP_METHOD_TO_MSW[a.data];
         const handler: ResponseResolver<MockedRequest, RestContext> = (
@@ -515,18 +577,27 @@ export function generateMockHandlers<A extends AnyApi>(
             mockResponsesArray.length > 1
               ? mockResponsesArray.shift()
               : mockResponsesArray[0]
-          ) as Response<T, any>;
-          if (a.next.type === "HEADER_RESPONSE") {
-            const responseHeaders = a.next.headers.map((key) =>
-              ctx.set(key, headers[key])
-            );
-            return res(
-              ctx.status(statusCode),
-              ctx.json<T>(data),
-              ...responseHeaders
-            );
+          ) as Response<T, S, any>;
+
+          const responseTemplate = a.next.find(
+            (responseTemplate) => getStatus(responseTemplate) === statusCode
+          );
+          if (responseTemplate) {
+            const templateHeaders = getHeaders(responseTemplate);
+            if (templateHeaders) {
+              const responseHeaders = templateHeaders.map((key) =>
+                ctx.set(key, headers[key])
+              );
+              return res(
+                ctx.status(statusCode),
+                ctx.json<T>(data),
+                ...responseHeaders
+              );
+            }
+
+            return res(ctx.status(statusCode), ctx.json<T>(data));
           }
-          return res(ctx.status(statusCode), ctx.json<T>(data));
+          throw new Error("Couldn't mock");
         };
         return method(path, handler);
       }) as MockHandler<typeof a>;

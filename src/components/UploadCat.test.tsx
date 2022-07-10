@@ -3,11 +3,11 @@ import UploadCat from "./UploadCat";
 import { server, Wrapped } from "./testing";
 import mocks from "../mocks/testMocks";
 import userEvent from "@testing-library/user-event";
-import { ok, serverError } from "../api";
+import { ok, response } from "../api";
 import { Route, Routes } from "react-router-dom";
 
 test("uploading success", async () => {
-  server.use(mocks.mockUploadCat(ok({})));
+  server.use(mocks.mockUploadCat(ok()));
   render(
     <Wrapped initialEntries={["/upload"]}>
       <Routes>
@@ -26,7 +26,7 @@ test("uploading success", async () => {
 });
 
 test("uploading failure", async () => {
-  server.use(mocks.mockUploadCat(serverError({ message: "some error" })));
+  server.use(mocks.mockUploadCat(response({ message: "some error" }, 400)));
   render(
     <Wrapped>
       <UploadCat />

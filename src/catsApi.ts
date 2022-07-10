@@ -1,5 +1,5 @@
 import { Cat, Favourite, Vote } from "./types";
-import { Dsl, getClientHandlers, r, withHeaders } from "./api";
+import { badRequest, Dsl, getClientHandlers, r, withHeaders } from "./api";
 
 export const BASE_URL = "https://api.thecatapi.com/v1";
 
@@ -8,7 +8,7 @@ const d = Dsl.empty();
 const favouritesApi = d
   .path("favourites")
   .any(
-    d.get(r<Favourite[]>()),
+    d.get(r<Favourite[]>(), badRequest<{ message: string }>()),
     d.capture(":favouriteId").delete_(r()),
     d.body<{ image_id: string }>("JSON").post(r())
   );
@@ -18,19 +18,27 @@ const votesApi = d
   .any(
     d
       .queryParam<number>("page")
-      .get(withHeaders("pagination-count")(r<Vote[]>())),
+      .get(
+        withHeaders("pagination-count")(r<Vote[]>()),
+        badRequest<{ message: string }>()
+      ),
     d.body<{ image_id: string; value: 1 }>("JSON").post(r()),
     d.body<{ image_id: string; value: 0 }>("JSON").post(r())
   );
 
 const catsApi = d
   .path("images")
-  .any(d.queryParam<number>("limit").get(r<Cat[]>()));
+  .any(
+    d
+      .queryParam<number>("limit")
+      .get(r<Cat[]>(), badRequest<{ message: string }>())
+  );
 
-const uploadApi = d.path("images").path("upload").body<FormData>().post(r());
-
-// upload api - this can return an error with a certain status code, which isn't really
-// modelled here
+const uploadApi = d
+  .path("images")
+  .path("upload")
+  .body<FormData>()
+  .post(r(), badRequest<{ message: string }>());
 
 export const api = d
   .header("x-api-key")

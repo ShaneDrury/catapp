@@ -6,13 +6,13 @@ interface Request {
   headers?: HeadersInit;
 }
 
-export const runRequest = async <T>({
+export const runRequest = async ({
   url,
   method = "GET",
   body,
   queryParams = {},
   headers,
-}: Request): Promise<{ json: T; headers: Headers }> => {
+}: Request) => {
   const searchParams = new URLSearchParams();
   Object.entries(queryParams).forEach(([key, value]) => {
     searchParams.append(key, value);
@@ -23,11 +23,5 @@ export const runRequest = async <T>({
     headers,
     body,
   };
-  const response = await fetch(`${url}?${searchParams.toString()}`, request);
-  const json = await response.json();
-  if (response.ok) {
-    return { json, headers: response.headers };
-  } else {
-    throw new Error(json.message);
-  }
+  return fetch(`${url}?${searchParams.toString()}`, request);
 };

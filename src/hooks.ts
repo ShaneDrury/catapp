@@ -16,16 +16,34 @@ export const useCatApi = () => {
   return api;
 };
 
+const handle200 =
+  <T>(
+    apiCall: () => Promise<
+      | { status: 200; data: T }
+      | { status: Omit<number, "200">; data: { message: string } }
+    >
+  ) =>
+  async () => {
+    const response = await apiCall();
+    if (response.status === 200) {
+      return response.data as T;
+    }
+    throw new Error(response.data.message);
+  };
+
 export const useCats = () => {
   const api = useCatApi();
-  return useQuery<ICat[], { message: string }>("cats", api.getAllImages(100));
+  return useQuery<ICat[], { message: string }>(
+    "cats",
+    handle200(api.getAllImages(100))
+  );
 };
 
 export const useFavourites = () => {
   const api = useCatApi();
   const { data, ...rest } = useQuery<Favourite[], { message: string }>(
     "favourites",
-    api.getAllFavourites
+    handle200(api.getAllFavourites)
   );
   const groupedFavourites = React.useMemo(
     () =>
@@ -48,14 +66,18 @@ export const useVotes = () => {
       const items: Vote[] = [];
       while (true) {
         const result = await api.getAllVotes(page)();
-        items.push(...result.data);
-        page += 1;
-        const totalCount = parseInt(
-          result.headers["pagination-count"] || "0",
-          10
-        );
-        if (items.length >= totalCount) {
-          break;
+        if (result.status === 200) {
+          items.push(...result.data);
+          page += 1;
+          const totalCount = parseInt(
+            result.headers["pagination-count"] || "0",
+            10
+          );
+          if (items.length >= totalCount) {
+            break;
+          }
+        } else {
+          throw new Error(result.data.message);
         }
       }
       return items;
@@ -70,11 +92,17 @@ export const useVotes = () => {
 
 export const useUploadCat = () => {
   const api = useCatApi();
-  return useMutation<unknown, { message: string }, File>((catData: File) => {
-    const catPicture = new FormData();
-    catPicture.append("file", catData);
-    return api.uploadCat(catPicture)();
-  });
+  return useMutation<unknown, { message: string }, File>(
+    async (catData: File) => {
+      const catPicture = new FormData();
+      catPicture.append("file", catData);
+      const response = await api.uploadCat(catPicture)();
+      if (response.status === 200) {
+        return response.data;
+      }
+      throw new Error(response.data.message);
+    }
+  );
 };
 
 export const useVoteDown = (id: string) => {
