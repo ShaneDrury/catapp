@@ -1,6 +1,6 @@
 import React from "react";
 import { CatApiContext } from "../hooks";
-import { QueryClient, QueryClientProvider } from "react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { apiFromKey } from "../catsApi";
 import { MemoryRouter } from "react-router-dom";
 import { setupServer } from "msw/node";
@@ -23,6 +23,11 @@ export const Wrapped = ({
             retry: false,
             cacheTime: Infinity,
           },
+        },
+        logger: {
+          log: console.log,
+          warn: console.warn,
+          error: () => {},
         },
       })
   );

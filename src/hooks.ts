@@ -1,7 +1,7 @@
 import { Favourite, Vote, Cat as ICat } from "./types";
 import { makeApiCalls } from "./catsApi";
 import { groupBy } from "./utils";
-import { useMutation, useQuery, useQueryClient } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 
 export const CatApiContext = React.createContext<
@@ -34,7 +34,7 @@ const handle200 =
 export const useCats = () => {
   const api = useCatApi();
   return useQuery<ICat[], { message: string }>(
-    "cats",
+    ["cats"],
     handle200(api.getAllImages(100))
   );
 };
@@ -42,7 +42,7 @@ export const useCats = () => {
 export const useFavourites = () => {
   const api = useCatApi();
   return useQuery<Record<string, Favourite>, { message: string }>(
-    "favourites",
+    ["favourites"],
     async () => {
       const data = await handle200(api.getAllFavourites)();
       return data.reduce<Record<string, Favourite>>(
@@ -56,7 +56,7 @@ export const useFavourites = () => {
 export const useVotes = () => {
   const api = useCatApi();
   return useQuery<Record<string, Vote[]>, { message: string }>(
-    "votes",
+    ["votes"],
     async () => {
       let page = 0;
       const items: Vote[] = [];
@@ -106,7 +106,7 @@ export const useVoteDown = (id: string) => {
         value: 0,
       })(),
     {
-      onSuccess: () => queryClient.invalidateQueries("votes"),
+      onSuccess: () => queryClient.invalidateQueries(["votes"]),
     }
   );
 };
@@ -115,7 +115,7 @@ export const useVoteUp = (id: string) => {
   const api = useCatApi();
   const queryClient = useQueryClient();
   return useMutation(() => api.voteUp({ image_id: id, value: 1 })(), {
-    onSuccess: () => queryClient.invalidateQueries("votes"),
+    onSuccess: () => queryClient.invalidateQueries(["votes"]),
   });
 };
 
@@ -131,7 +131,7 @@ export const useFavourite = (id: string, favourite: Favourite) => {
       }
     },
     {
-      onSuccess: () => queryClient.invalidateQueries("favourites"),
+      onSuccess: () => queryClient.invalidateQueries(["favourites"]),
     }
   );
 };
