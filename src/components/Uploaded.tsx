@@ -5,18 +5,18 @@ import { Grid } from "@mui/material";
 import combineQueryResults from "combineQueryResults";
 
 const Uploaded = () => {
-  const catsQuery = useCats();
-  const favouritesQuery = useFavourites();
-  const votesQuery = useVotes();
-  const combined = combineQueryResults(catsQuery, favouritesQuery, votesQuery);
-  if (combined.status === "loading" || combined.status === "idle") {
+  const { status, data, error } = combineQueryResults(
+    useCats(),
+    useFavourites(),
+    useVotes()
+  );
+  if (status === "loading") {
     return <div>Loading!</div>;
   }
-  const error = combined.error;
   if (error) {
     return <div>Error! {error.message}</div>;
   }
-  const [cats, favourites, votes] = combined.data;
+  const [cats, favourites, votes] = data;
   return (
     <Grid container spacing={2}>
       {cats.map((cat) => (
