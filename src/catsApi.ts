@@ -16,7 +16,7 @@ export const BASE_URL = "https://api.thecatapi.com/v1";
 
 const favouritesApi = path("favourites").any(
   get(r<Favourite[]>(), badRequest<{ message: string }>()),
-  capture(":favouriteId").delete_(r()),
+  capture("favouriteId").delete_(r()),
   body<{ image_id: string }>("JSON").post(r())
 );
 

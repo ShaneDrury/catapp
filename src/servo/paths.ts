@@ -19,7 +19,7 @@ type Paths<R> = R extends Path<infer N>
   : // eslint-disable-next-line @typescript-eslint/no-unused-vars
   R extends Method<infer T>
   ? string
-  : R extends Capture<infer S>
+  : R extends Capture<infer S, infer C>
   ? Paths<S>
   : R extends Header<infer S>
   ? Paths<S>

@@ -1,7 +1,6 @@
 import {
   Any,
   AnyResponse,
-  ApiPath,
   ApiRequestBody,
   Body,
   Capture,
@@ -16,8 +15,8 @@ import {
 
 type FancyReturn<T, R> = T extends Path<infer M>
   ? Path<FancyReturn<M, R>>
-  : T extends Capture<infer M>
-  ? Capture<FancyReturn<M, R>>
+  : T extends Capture<infer M, infer C>
+  ? Capture<FancyReturn<M, R>, C>
   : T extends Header<infer M>
   ? Header<FancyReturn<M, R>>
   : T extends QueryParam<infer M, infer N>
@@ -84,9 +83,9 @@ export class Dsl<T> {
     url: string
   ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, Path<M>>> =>
     new Dsl((next) => this.dsl({ type: "PATH", data: url, next })) as any;
-  capture = <M>(
-    placeholder: ApiPath
-  ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, Capture<M>>> =>
+  capture = <M, C extends string>(
+    placeholder: C
+  ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, Capture<M, C>>> =>
     new Dsl((next) =>
       this.dsl({
         type: "CAPTURE",
@@ -169,7 +168,7 @@ export const get = <G extends AnyResponse[]>(...next: G) => d.get<G>(...next);
 export const path = (url: string) => d.path(url);
 export const body = <Q>(requestBody?: ApiRequestBody) => d.body<Q>(requestBody);
 export const queryParam = <T>(name: string) => d.queryParam<T>(name);
-export const capture = (c: ApiPath) => d.capture(c);
+export const capture = <M, C extends string>(c: C) => d.capture<M, C>(c);
 export const header = (name: string) => d.header(name);
 export const post = <G extends AnyResponse[]>(...next: G) => d.post<G>(...next);
 export const delete_ = <G extends AnyResponse[]>(...next: G) =>

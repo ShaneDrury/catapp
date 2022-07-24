@@ -129,7 +129,7 @@ export const useFavourite = (id: string, favourite: Favourite) => {
   return useMutation(
     () => {
       if (favourite) {
-        return api.deleteFavourite(favourite.id)();
+        return api.deleteFavourite({ favouriteId: favourite.id })();
       } else {
         return api.postFavourite({ image_id: id })();
       }

@@ -68,8 +68,8 @@ type MockHandler<R> = R extends Path<infer N>
   ? AddMockHandler<P>
   : R extends Method<infer T>
   ? (...s: ArrayMockHandlerType<T>[]) => RestHandler
-  : R extends Capture<infer S>
-  ? (c: string) => MockHandler<S>
+  : R extends Capture<infer S, infer C>
+  ? (c: { [key in C]: string }) => MockHandler<S>
   : R extends Header<infer S>
   ? MockHandler<S>
   : R extends QueryParam<infer S>
@@ -148,8 +148,10 @@ export function generateMockHandlers<A extends AnyApi>(
       >;
     }
     case "CAPTURE": {
-      return ((c: string) =>
-        generateMockHandlers(a.next, `${path}/${c}`)) as MockHandler<typeof a>;
+      return ((c: { [key in typeof a.data]: string }) =>
+        generateMockHandlers(a.next, `${path}/${c[a.data]}`)) as MockHandler<
+        typeof a
+      >;
     }
     default: {
       return generateMockHandlers(a.next, path) as MockHandler<typeof a>;

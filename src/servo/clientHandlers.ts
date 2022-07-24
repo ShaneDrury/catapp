@@ -38,8 +38,8 @@ type ClientHandler<R> = R extends Path<infer N>
   ? AddClientHandler<P>
   : R extends Method<infer N>
   ? () => Promise<ArrayResponseType<N>>
-  : R extends Capture<infer S>
-  ? (c: string) => ClientHandler<S>
+  : R extends Capture<infer S, infer C>
+  ? (c: { [k in C]: string }) => ClientHandler<S>
   : R extends Header<infer S>
   ? (header: string) => ClientHandler<S>
   : R extends QueryParam<infer S, infer T>
@@ -117,10 +117,10 @@ export function getClientHandlers<A extends AnyApi>(
       ) as ClientHandler<typeof a>;
     }
     case "CAPTURE": {
-      return ((c: string) =>
+      return ((c: { [key in typeof a.data]: string }) =>
         getClientHandlers(
           a.next,
-          `${path}/${c}`,
+          `${path}/${c[a.data]}`,
           headers,
           queryParams,
           body

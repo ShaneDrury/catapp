@@ -31,7 +31,7 @@ beforeEach(() => {
     )
   );
   server.use(mocks.mockPostFavourite(ok()));
-  server.use(mocks.mockDeleteFavourite("favourite_id")(ok()));
+  server.use(mocks.mockDeleteFavourite({ favouriteId: "favourite_id" })(ok()));
 });
 
 test("happy path, rendering the score and buttons", async () => {

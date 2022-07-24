@@ -20,7 +20,7 @@ export const mockData = [
     ])
   ),
   mockAllFavourites(ok([{ id: "1", image_id: "1" }])),
-  mockDeleteFavourite("1")(ok()),
+  mockDeleteFavourite({ favouriteId: "1" })(ok()),
   mockPostFavourite(ok()),
   mockAllVotes(
     ok(
