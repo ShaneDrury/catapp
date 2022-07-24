@@ -106,7 +106,9 @@ export const useVoteDown = (id: string) => {
         value: 0,
       })(),
     {
-      onSuccess: () => queryClient.invalidateQueries(["votes"]),
+      onSuccess: () => {
+        queryClient.invalidateQueries(["votes"]);
+      },
     }
   );
 };
@@ -115,7 +117,9 @@ export const useVoteUp = (id: string) => {
   const api = useCatApi();
   const queryClient = useQueryClient();
   return useMutation(() => api.voteUp({ image_id: id, value: 1 })(), {
-    onSuccess: () => queryClient.invalidateQueries(["votes"]),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["votes"]);
+    },
   });
 };
 
@@ -131,7 +135,9 @@ export const useFavourite = (id: string, favourite: Favourite) => {
       }
     },
     {
-      onSuccess: () => queryClient.invalidateQueries(["favourites"]),
+      onSuccess: () => {
+        queryClient.invalidateQueries(["favourites"]);
+      },
     }
   );
 };
