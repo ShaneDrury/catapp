@@ -1,59 +1,52 @@
 import { Cat, Favourite, Vote } from "./types";
-import { badRequest, r, withHeaders, Dsl } from "servo/dsl";
+import {
+  badRequest,
+  r,
+  withHeaders,
+  get,
+  path,
+  body,
+  queryParam,
+  capture,
+  header,
+} from "servo/dsl";
 import { getClientHandlers } from "servo/clientHandlers";
 
 export const BASE_URL = "https://api.thecatapi.com/v1";
 
-const d = Dsl.empty();
+const favouritesApi = path("favourites").any(
+  get(r<Favourite[]>(), badRequest<{ message: string }>()),
+  capture(":favouriteId").delete_(r()),
+  body<{ image_id: string }>("JSON").post(r())
+);
 
-const favouritesApi = d
-  .path("favourites")
-  .any(
-    d.get(r<Favourite[]>(), badRequest<{ message: string }>()),
-    d.capture(":favouriteId").delete_(r()),
-    d.body<{ image_id: string }>("JSON").post(r())
-  );
+const votesApi = path("votes").any(
+  queryParam<number>("page").get(
+    withHeaders("pagination-count")(r<Vote[]>()),
+    badRequest<{ message: string }>()
+  ),
+  body<{ image_id: string; value: 1 }>("JSON").post(r()),
+  body<{ image_id: string; value: 0 }>("JSON").post(r())
+);
 
-const votesApi = d
-  .path("votes")
-  .any(
-    d
-      .queryParam<number>("page")
-      .get(
-        withHeaders("pagination-count")(r<Vote[]>()),
-        badRequest<{ message: string }>()
-      ),
-    d.body<{ image_id: string; value: 1 }>("JSON").post(r()),
-    d.body<{ image_id: string; value: 0 }>("JSON").post(r())
-  );
+const catsApi = path("images").any(
+  queryParam<number>("limit").get(r<Cat[]>(), badRequest<{ message: string }>())
+);
 
-const catsApi = d
-  .path("images")
-  .any(
-    d
-      .queryParam<number>("limit")
-      .get(r<Cat[]>(), badRequest<{ message: string }>())
-  );
-
-const uploadApi = d
-  .path("images")
+const uploadApi = path("images")
   .path("upload")
   .body<FormData>()
   .post(r(), badRequest<{ message: string }>());
 
-export const api = d
-  .header("x-api-key")
-  .any(
-    d.header("Content-type").any(catsApi, favouritesApi, votesApi),
-    uploadApi
-  )
+export const api = header("x-api-key")
+  .any(header("Content-type").any(catsApi, favouritesApi, votesApi), uploadApi)
   .run();
 
 // could recursive functions take a second parameter which is next?
 
-// export const apiTest = d
-//   .header("x-api-key", [
-//     d.header("Content-type", [catsApi, favouritesApi, votesApi]),
+// export const apiTest =
+//   header("x-api-key", [
+//     header("Content-type", [catsApi, favouritesApi, votesApi]),
 //     uploadApi,
 //   ])
 
