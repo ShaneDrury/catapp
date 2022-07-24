@@ -52,12 +52,12 @@ export const api = header("x-api-key")
 
 export const makeApiCalls = (apiKey: string, baseUrl: string) => {
   const allEndpoints = getClientHandlers(api, baseUrl, {}, {}, null);
-  const [jsonEndpoints, uploadCat] = allEndpoints(apiKey);
+  const [jsonEndpoints, uploadCat] = allEndpoints({ "x-api-key": apiKey });
   const [
     [getAllImages],
     [getAllFavourites, deleteFavourite, postFavourite],
     [getAllVotes, voteUp, voteDown],
-  ] = jsonEndpoints("application/json");
+  ] = jsonEndpoints({ "Content-type": "application/json" });
   return {
     getAllImages,
     getAllFavourites,

@@ -1,6 +1,5 @@
 export type ApiPath = string;
 export type ApiMethod = "GET" | "POST" | "DELETE" | "OPTIONS";
-export type ApiHeader = string;
 export type ApiQueryParam = string;
 export type ApiRequestBody = "JSON" | undefined;
 
@@ -13,7 +12,7 @@ export type Capture<S, C extends string> = {
   data: C;
   next: S;
 };
-export type Header<S> = { type: "HEADER"; data: ApiHeader; next: S };
+export type Header<S, H extends string> = { type: "HEADER"; data: H; next: S };
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export type QueryParam<S, T = unknown> = {
   type: "QUERY_PARAM";
@@ -49,7 +48,7 @@ export type AnyApi =
   | Capture<any, any>
   | Path<any>
   | Or<any, any>
-  | Header<any>
+  | Header<any, any>
   | QueryParam<any>
   | Body<any, any>
   | Any<any>;

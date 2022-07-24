@@ -70,7 +70,7 @@ type MockHandler<R> = R extends Path<infer N>
   ? (...s: ArrayMockHandlerType<T>[]) => RestHandler
   : R extends Capture<infer S, infer C>
   ? (c: { [key in C]: string }) => MockHandler<S>
-  : R extends Header<infer S>
+  : R extends Header<infer S, infer H>
   ? MockHandler<S>
   : R extends QueryParam<infer S>
   ? MockHandler<S>

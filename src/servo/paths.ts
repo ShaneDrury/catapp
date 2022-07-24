@@ -21,7 +21,7 @@ type Paths<R> = R extends Path<infer N>
   ? string
   : R extends Capture<infer S, infer C>
   ? Paths<S>
-  : R extends Header<infer S>
+  : R extends Header<infer S, infer H>
   ? Paths<S>
   : R extends QueryParam<infer S>
   ? Paths<S>
