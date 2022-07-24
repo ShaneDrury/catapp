@@ -1,5 +1,6 @@
 import {
   Any,
+  AnyResponse,
   ApiPath,
   ApiRequestBody,
   Body,
@@ -44,11 +45,11 @@ export class Dsl<T> {
     this.dsl = dsl;
   }
   static empty = () => new Dsl((next) => next);
-  get = <G extends any[]>(
+  get = <G extends AnyResponse[]>(
     ...next: G
   ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
     new DslLeaf(this.dsl({ type: "METHOD", data: "GET", next })) as any;
-  post = <G extends any[]>(
+  post = <G extends AnyResponse[]>(
     ...next: G
   ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
     new DslLeaf(
@@ -58,7 +59,7 @@ export class Dsl<T> {
         next,
       })
     ) as any;
-  delete_ = <G extends any[]>(
+  delete_ = <G extends AnyResponse[]>(
     ...next: G
   ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
     new DslLeaf(
@@ -68,7 +69,7 @@ export class Dsl<T> {
         next,
       })
     ) as any;
-  options = <G extends any[]>(
+  options = <G extends AnyResponse[]>(
     ...next: G
   ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
     new DslLeaf(
@@ -164,14 +165,16 @@ export const r = jsonResponse;
 
 const d = Dsl.empty();
 
-export const get = <G extends any[]>(...next: G) => d.get<G>(...next);
+export const get = <G extends AnyResponse[]>(...next: G) => d.get<G>(...next);
 export const path = (url: string) => d.path(url);
 export const body = <Q>(requestBody?: ApiRequestBody) => d.body<Q>(requestBody);
 export const queryParam = <T>(name: string) => d.queryParam<T>(name);
 export const capture = (c: ApiPath) => d.capture(c);
 export const header = (name: string) => d.header(name);
-export const post = <G extends any[]>(...next: G) => d.post<G>(...next);
-export const delete_ = <G extends any[]>(...next: G) => d.delete_<G>(...next);
-export const options = <G extends any[]>(...next: G) => d.options<G>(...next);
+export const post = <G extends AnyResponse[]>(...next: G) => d.post<G>(...next);
+export const delete_ = <G extends AnyResponse[]>(...next: G) =>
+  d.delete_<G>(...next);
+export const options = <G extends AnyResponse[]>(...next: G) =>
+  d.options<G>(...next);
 export const or = <P, Q>(l1: DslLeaf<P>, l2: DslLeaf<Q>) => d.or(l1, l2);
-export const any = <P extends any[]>(...xs: P) => d.any(...xs);
+export const any = <P extends DslLeaf<any>[]>(...xs: P) => d.any(...xs);
