@@ -51,7 +51,12 @@ export const api = header("x-api-key")
 //   ])
 
 export const makeApiCalls = (apiKey: string, baseUrl: string) => {
-  const allEndpoints = getClientHandlers(api, baseUrl, {}, {}, null);
+  const allEndpoints = getClientHandlers(api, {
+    path: baseUrl,
+    headers: {},
+    queryParams: {},
+    body: null,
+  });
   const [jsonEndpoints, uploadCat] = allEndpoints({ "x-api-key": apiKey });
   const [
     [getAllImages],

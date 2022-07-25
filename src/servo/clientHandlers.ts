@@ -48,13 +48,18 @@ type ClientHandler<R> = R extends Path<infer N>
   ? (body: T) => ClientHandler<S>
   : never;
 
+type Acc = {
+  path: string;
+  headers: HeadersInit;
+  queryParams: Record<string, string>;
+  body: BodyInit | null;
+};
+
 export function getClientHandlers<A extends AnyApi>(
   a: A,
-  path: string,
-  headers: HeadersInit,
-  queryParams: Record<string, string>,
-  body: BodyInit | null
+  acc: Acc
 ): ClientHandler<typeof a> {
+  const { path, headers, queryParams, body } = acc;
   switch (a.type) {
     case "METHOD": {
       return (async () => {
@@ -95,69 +100,55 @@ export function getClientHandlers<A extends AnyApi>(
     }
     case "PATH": {
       const nextAcc = `${path}/${a.data}`;
-      return getClientHandlers(
-        a.next,
-        nextAcc,
-        headers,
-        queryParams,
-        body
-      ) as ClientHandler<typeof a>;
+      return getClientHandlers(a.next, {
+        ...acc,
+        path: nextAcc,
+      }) as ClientHandler<typeof a>;
     }
     case "OR": {
       const [l, r] = a.next;
       return [
-        getClientHandlers(l, path, headers, queryParams, body),
-        getClientHandlers(r, path, headers, queryParams, body),
+        getClientHandlers(l, acc),
+        getClientHandlers(r, acc),
       ] as ClientHandler<typeof a>;
     }
     case "ANY": {
       const xs = a.next;
-      return xs.map((x: A) =>
-        getClientHandlers(x, path, headers, queryParams, body)
-      ) as ClientHandler<typeof a>;
+      return xs.map((x: A) => getClientHandlers(x, acc)) as ClientHandler<
+        typeof a
+      >;
     }
     case "CAPTURE": {
       return ((c: { [key in typeof a.data]: string }) =>
-        getClientHandlers(
-          a.next,
-          `${path}/${c[a.data]}`,
-          headers,
-          queryParams,
-          body
-        )) as ClientHandler<typeof a>;
+        getClientHandlers(a.next, {
+          ...acc,
+          path: `${path}/${c[a.data]}`,
+        })) as ClientHandler<typeof a>;
     }
     case "HEADER": {
       return ((h: { [key in typeof a.data]: any }) =>
-        getClientHandlers(
-          a.next,
-          path,
-          { ...headers, [a.data]: h[a.data] },
-          queryParams,
-          body
-        )) as ClientHandler<typeof a>;
+        getClientHandlers(a.next, {
+          ...acc,
+          headers: { ...headers, [a.data]: h[a.data] },
+        })) as ClientHandler<typeof a>;
     }
     case "QUERY_PARAM": {
       return ((queryParam: any) =>
-        getClientHandlers(
-          a.next,
-          path,
-          headers,
-          {
+        getClientHandlers(a.next, {
+          ...acc,
+          queryParams: {
             ...queryParams,
             [a.data]: queryParam.toString(),
           },
-          body
-        )) as ClientHandler<typeof a>;
+        })) as ClientHandler<typeof a>;
     }
     case "BODY": {
       return ((reqBody: any) =>
-        getClientHandlers(
-          a.next,
-          path,
-          headers,
-          queryParams,
-          a.requestBodyType === "JSON" ? JSON.stringify(reqBody) : reqBody
-        )) as ClientHandler<typeof a>;
+        getClientHandlers(a.next, {
+          ...acc,
+          body:
+            a.requestBodyType === "JSON" ? JSON.stringify(reqBody) : reqBody,
+        })) as ClientHandler<typeof a>;
     }
   }
 }
