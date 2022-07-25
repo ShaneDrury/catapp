@@ -142,7 +142,8 @@ export function generateMockHandlers<A extends AnyApi>(
       ] as MockHandler<typeof a>;
     }
     case "ANY": {
-      return a.next.map((x: A) => generateMockHandlers(x, path)) as MockHandler<
+      const xs = a.next;
+      return xs.map((x: A) => generateMockHandlers(x, path)) as MockHandler<
         typeof a
       >;
     }

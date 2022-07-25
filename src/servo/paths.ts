@@ -50,7 +50,8 @@ function getPathsAcc<A extends AnyApi>(a: A, acc: string): Paths<typeof a> {
       return getPathsAcc(a.next, `${acc}/${a.data}`) as Paths<typeof a>;
     }
     case "ANY": {
-      return a.next.map((x: A) => getPathsAcc(x, acc)) as Paths<typeof a>;
+      const xs = a.next;
+      return xs.map((x: A) => getPathsAcc(x, acc)) as Paths<typeof a>;
     }
     default: {
       return getPathsAcc(a.next, acc) as Paths<typeof a>;
