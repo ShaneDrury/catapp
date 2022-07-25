@@ -1,6 +1,10 @@
 import {
   Any,
   AnyApi,
+  AnyResponse,
+  ApiMethod,
+  ApiQueryParam,
+  ApiRequestBody,
   ArrayObj,
   Body,
   Capture,
@@ -59,51 +63,16 @@ export function getClientHandlers<A extends AnyApi>(
   a: A,
   acc: Acc
 ): ClientHandler<typeof a> {
-  const { path, headers, queryParams, body } = acc;
   switch (a.type) {
     case "METHOD": {
-      return (async () => {
-        const response = await runRequest({
-          url: path,
-          method: a.data,
-          queryParams,
-          headers,
-          body,
-        });
-
-        const responseTemplate = a.next.find(
-          (responseTemplate) => getStatus(responseTemplate) === response.status
-        );
-
-        if (responseTemplate) {
-          const json = await response.json();
-          const headers = getHeaders(responseTemplate);
-          if (headers) {
-            return {
-              data: json,
-              status: response.status,
-              headers: Object.fromEntries(
-                headers.map((key) => [key, response.headers.get(key)])
-              ),
-            };
-          } else {
-            return {
-              data: json,
-              status: response.status,
-            };
-          }
-        }
-        throw new Error(
-          `Unexpected response ${response.status} ${response.statusText}`
-        );
-      }) as ClientHandler<typeof a>;
+      return handleMethod(a.data, a.next, acc) as ClientHandler<typeof a>;
     }
     case "PATH": {
-      const nextAcc = `${path}/${a.data}`;
-      return getClientHandlers(a.next, {
-        ...acc,
-        path: nextAcc,
-      }) as ClientHandler<typeof a>;
+      return addPath(
+        a.data,
+        (newAcc) => getClientHandlers(a.next, newAcc),
+        acc
+      ) as ClientHandler<typeof a>;
     }
     case "OR": {
       const [l, r] = a.next;
@@ -113,42 +82,128 @@ export function getClientHandlers<A extends AnyApi>(
       ] as ClientHandler<typeof a>;
     }
     case "ANY": {
-      const xs = a.next;
-      return xs.map((x: A) => getClientHandlers(x, acc)) as ClientHandler<
+      return a.next.map((x: A) => getClientHandlers(x, acc)) as ClientHandler<
         typeof a
       >;
     }
     case "CAPTURE": {
-      return ((c: { [key in typeof a.data]: string }) =>
-        getClientHandlers(a.next, {
-          ...acc,
-          path: `${path}/${c[a.data]}`,
-        })) as ClientHandler<typeof a>;
+      return addCapture(
+        a.data,
+        (newAcc) => getClientHandlers(a.next, newAcc),
+        acc
+      ) as ClientHandler<typeof a>;
     }
     case "HEADER": {
-      return ((h: { [key in typeof a.data]: any }) =>
-        getClientHandlers(a.next, {
-          ...acc,
-          headers: { ...headers, [a.data]: h[a.data] },
-        })) as ClientHandler<typeof a>;
+      return addHeader(
+        a.data,
+        (newAcc) => getClientHandlers(a.next, newAcc),
+        acc
+      ) as ClientHandler<typeof a>;
     }
     case "QUERY_PARAM": {
-      return ((queryParam: any) =>
-        getClientHandlers(a.next, {
-          ...acc,
-          queryParams: {
-            ...queryParams,
-            [a.data]: queryParam.toString(),
-          },
-        })) as ClientHandler<typeof a>;
+      return addQueryParam(
+        a.data,
+        (newAcc) => getClientHandlers(a.next, newAcc),
+        acc
+      ) as ClientHandler<typeof a>;
     }
     case "BODY": {
-      return ((reqBody: any) =>
-        getClientHandlers(a.next, {
-          ...acc,
-          body:
-            a.requestBodyType === "JSON" ? JSON.stringify(reqBody) : reqBody,
-        })) as ClientHandler<typeof a>;
+      return addRequestBody(
+        a.requestBodyType,
+        (newAcc) => getClientHandlers(a.next, newAcc),
+        acc
+      ) as ClientHandler<typeof a>;
     }
   }
 }
+
+const handleMethod = (
+  method: ApiMethod,
+  responseTemplates: AnyResponse[],
+  { path, queryParams, headers, body }: Acc
+) => {
+  return async () => {
+    const response = await runRequest({
+      url: path,
+      method,
+      queryParams,
+      headers,
+      body,
+    });
+
+    const responseTemplate = responseTemplates.find(
+      (responseTemplate) => getStatus(responseTemplate) === response.status
+    );
+
+    if (responseTemplate) {
+      const json = await response.json();
+      const headers = getHeaders(responseTemplate);
+      if (headers) {
+        return {
+          data: json,
+          status: response.status,
+          headers: Object.fromEntries(
+            headers.map((key) => [key, response.headers.get(key)])
+          ),
+        };
+      } else {
+        return {
+          data: json,
+          status: response.status,
+        };
+      }
+    }
+    throw new Error(
+      `Unexpected response ${response.status} ${response.statusText}`
+    );
+  };
+};
+
+const addPath = <T>(path: string, continuation: (newAcc: Acc) => T, acc: Acc) =>
+  continuation({
+    ...acc,
+    path: `${acc.path}/${path}`,
+  });
+
+const addCapture =
+  <T>(captureName: string, continuation: (newAcc: Acc) => T, acc: Acc) =>
+  (c: { [key in typeof captureName]: string }) =>
+    continuation({
+      ...acc,
+      path: `${acc.path}/${c[captureName]}`,
+    });
+
+const addHeader =
+  <T>(headerName: string, continuation: (newAcc: Acc) => T, acc: Acc) =>
+  (h: { [key in typeof headerName]: any }) =>
+    continuation({
+      ...acc,
+      headers: { ...acc.headers, [headerName]: h[headerName] },
+    });
+
+const addRequestBody =
+  <T>(
+    requestBodyType: ApiRequestBody,
+    continuation: (newAcc: Acc) => T,
+    acc: Acc
+  ) =>
+  (reqBody: any) =>
+    continuation({
+      ...acc,
+      body: requestBodyType === "JSON" ? JSON.stringify(reqBody) : reqBody,
+    });
+
+const addQueryParam =
+  <T>(
+    queryParamName: ApiQueryParam,
+    continuation: (newAcc: Acc) => T,
+    acc: Acc
+  ) =>
+  (queryParam: any) =>
+    continuation({
+      ...acc,
+      queryParams: {
+        ...acc.queryParams,
+        [queryParamName]: queryParam.toString(),
+      },
+    });
