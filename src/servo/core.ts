@@ -1,10 +1,9 @@
-export type ApiPath = string;
 export type ApiMethod = "GET" | "POST" | "DELETE" | "OPTIONS";
 export type ApiQueryParam = string;
 export type ApiRequestBody = "JSON" | undefined;
 
 export type Method<N> = { type: "METHOD"; data: ApiMethod; next: N };
-export type Path<S> = { type: "PATH"; data: ApiPath; next: S };
+export type Path<S, U> = { type: "PATH"; data: U; next: S };
 export type Or<S, T> = { type: "OR"; next: [S, T] };
 export type Any<T extends any[]> = { type: "ANY"; next: T };
 export type Capture<S, C extends string> = {
@@ -46,7 +45,7 @@ export type AnyResponse =
 export type AnyApi =
   | Method<AnyResponse[]>
   | Capture<any, any>
-  | Path<any>
+  | Path<any, any>
   | Or<any, any>
   | Header<any, any>
   | QueryParam<any>

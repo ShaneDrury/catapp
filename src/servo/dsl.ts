@@ -13,8 +13,8 @@ import {
   QueryParam,
 } from "./core";
 
-type FancyReturn<T, R> = T extends Path<infer M>
-  ? Path<FancyReturn<M, R>>
+type FancyReturn<T, R> = T extends Path<infer M, infer U>
+  ? Path<FancyReturn<M, R>, U>
   : T extends Capture<infer M, infer C>
   ? Capture<FancyReturn<M, R>, C>
   : T extends Header<infer M, infer H>
@@ -79,9 +79,9 @@ export class Dsl<T> {
       })
     ) as any;
   p = (url: string) => this.path(url);
-  path = <M>(
-    url: string
-  ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, Path<M>>> =>
+  path = <M, U extends string>(
+    url: U
+  ): Dsl<FancyReturn<ReturnType<typeof this.dsl>, Path<M, U>>> =>
     new Dsl((next) => this.dsl({ type: "PATH", data: url, next })) as any;
   capture = <M, C extends string>(
     placeholder: C
@@ -165,7 +165,7 @@ export const r = jsonResponse;
 const d = Dsl.empty();
 
 export const get = <G extends AnyResponse[]>(...next: G) => d.get<G>(...next);
-export const path = (url: string) => d.path(url);
+export const path = <M, C extends string>(url: C) => d.path<M, C>(url);
 export const body = <Q>(requestBody?: ApiRequestBody) => d.body<Q>(requestBody);
 export const queryParam = <T>(name: string) => d.queryParam<T>(name);
 export const capture = <M, C extends string>(c: C) => d.capture<M, C>(c);

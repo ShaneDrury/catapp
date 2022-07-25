@@ -10,7 +10,7 @@ import {
   QueryParam,
 } from "./core";
 
-type Paths<R> = R extends Path<infer N>
+type Paths<R> = R extends Path<infer N, infer U>
   ? Paths<N>
   : R extends Or<infer N, infer M>
   ? [Paths<N>, Paths<M>]
@@ -31,9 +31,8 @@ type Paths<R> = R extends Path<infer N>
   ? Paths<S>
   : never;
 
-// TODO: I think this should be Paths it adds
 type AddPath<T> = T extends [infer F, ...infer Rest]
-  ? [Path<F>, ...AddPath<Rest>]
+  ? [Paths<F>, ...AddPath<Rest>]
   : [];
 
 function getPathsAcc<A extends AnyApi>(a: A, acc: string): Paths<typeof a> {

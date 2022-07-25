@@ -30,7 +30,8 @@ type ArrayResponseType<T> = T extends [infer R, ...infer Rest]
   ? ResponseTypeToData<R> | ArrayResponseType<Rest>
   : never;
 
-type ClientHandler<R> = R extends Path<infer N>
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type ClientHandler<R> = R extends Path<infer N, infer U>
   ? ClientHandler<N>
   : R extends Or<infer N, infer M>
   ? [ClientHandler<N>, ClientHandler<M>]

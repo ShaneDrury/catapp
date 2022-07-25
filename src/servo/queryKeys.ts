@@ -10,28 +10,31 @@ import {
   QueryParam,
 } from "./core";
 
-type QueryKeys<R> = R extends Path<infer N>
-  ? QueryKeys<N>
+type QueryKeys<R, Acc extends string[] = []> = R extends Path<
+  infer N,
+  infer U extends string
+>
+  ? QueryKeys<N, [...Acc, U]>
   : R extends Or<infer N, infer M>
-  ? [QueryKeys<N>, QueryKeys<M>]
+  ? [QueryKeys<N, Acc>, QueryKeys<M, Acc>]
   : R extends Any<infer P>
-  ? AddPath<P>
+  ? AddPath<P, Acc>
   : // eslint-disable-next-line @typescript-eslint/no-unused-vars
   R extends Method<infer T>
-  ? string[]
+  ? Acc
   : R extends Capture<infer S, infer C>
-  ? (c: { [k in C]: string }) => QueryKeys<S>
+  ? (c: { [k in C]: string }) => QueryKeys<S, Acc>
   : // eslint-disable-next-line @typescript-eslint/no-unused-vars
   R extends Header<infer S, infer H>
-  ? QueryKeys<S>
+  ? QueryKeys<S, Acc>
   : R extends QueryParam<infer S>
-  ? QueryKeys<S>
+  ? QueryKeys<S, Acc>
   : R extends Body<infer S>
-  ? QueryKeys<S>
+  ? QueryKeys<S, Acc>
   : never;
 
-type AddPath<T> = T extends [infer F, ...infer Rest]
-  ? [QueryKeys<F>, ...AddPath<Rest>]
+type AddPath<T, Acc extends string[]> = T extends [infer F, ...infer Rest]
+  ? [QueryKeys<F, Acc>, ...AddPath<Rest, Acc>]
   : [];
 
 function getQueryKeysAcc<A extends AnyApi>(
@@ -40,7 +43,7 @@ function getQueryKeysAcc<A extends AnyApi>(
 ): QueryKeys<typeof a> {
   switch (a.type) {
     case "METHOD": {
-      return acc as QueryKeys<typeof a>;
+      return acc as QueryKeys<typeof a, []>;
     }
     case "PATH": {
       const nextAcc = [...acc, a.data];

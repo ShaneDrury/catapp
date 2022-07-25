@@ -60,7 +60,7 @@ type ArrayMockHandlerType<T> = T extends [infer R, ...infer Rest]
   ? MockHandlerFromResponse<R> | ArrayMockHandlerType<Rest>
   : never;
 
-type MockHandler<R> = R extends Path<infer N>
+type MockHandler<R> = R extends Path<infer N, infer U>
   ? MockHandler<N>
   : R extends Or<infer N, infer M>
   ? [MockHandler<N>, MockHandler<M>]
