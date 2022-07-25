@@ -20,7 +20,7 @@ type QueryKeys<R, Acc extends string[] = []> = R extends Path<
   : R extends Any<infer P>
   ? AddPath<P, Acc>
   : // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  R extends Method<infer T>
+  R extends Method<infer T, infer M>
   ? Acc
   : R extends Capture<infer S, infer C>
   ? (c: { [k in C]: string }) => QueryKeys<S, Acc>

@@ -46,11 +46,11 @@ export class Dsl<T> {
   static empty = () => new Dsl((next) => next);
   get = <G extends AnyResponse[]>(
     ...next: G
-  ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
+  ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G, "GET">>> =>
     new DslLeaf(this.dsl({ type: "METHOD", data: "GET", next })) as any;
   post = <G extends AnyResponse[]>(
     ...next: G
-  ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
+  ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G, "POST">>> =>
     new DslLeaf(
       this.dsl({
         type: "METHOD",
@@ -60,7 +60,7 @@ export class Dsl<T> {
     ) as any;
   delete_ = <G extends AnyResponse[]>(
     ...next: G
-  ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
+  ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G, "DELETE">>> =>
     new DslLeaf(
       this.dsl({
         type: "METHOD",
@@ -70,7 +70,7 @@ export class Dsl<T> {
     ) as any;
   options = <G extends AnyResponse[]>(
     ...next: G
-  ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G>>> =>
+  ): DslLeaf<FancyReturn<ReturnType<typeof this.dsl>, Method<G, "OPTIONS">>> =>
     new DslLeaf(
       this.dsl({
         type: "METHOD",

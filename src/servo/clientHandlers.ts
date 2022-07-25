@@ -37,7 +37,8 @@ type ClientHandler<R> = R extends Path<infer N, infer U>
   ? [ClientHandler<N>, ClientHandler<M>]
   : R extends Any<infer P>
   ? AddClientHandler<P>
-  : R extends Method<infer N>
+  : // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  R extends Method<infer N, infer M>
   ? () => Promise<ArrayResponseType<N>>
   : R extends Capture<infer S, infer C>
   ? (c: { [k in C]: string }) => ClientHandler<S>

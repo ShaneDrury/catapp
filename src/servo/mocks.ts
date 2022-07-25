@@ -66,7 +66,8 @@ type MockHandler<R> = R extends Path<infer N, infer U>
   ? [MockHandler<N>, MockHandler<M>]
   : R extends Any<infer P>
   ? AddMockHandler<P>
-  : R extends Method<infer T>
+  : // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  R extends Method<infer T, infer M>
   ? (...s: ArrayMockHandlerType<T>[]) => RestHandler
   : R extends Capture<infer S, infer C>
   ? (c: { [key in C]: string }) => MockHandler<S>
