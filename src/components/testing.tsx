@@ -1,7 +1,7 @@
 import React from "react";
 import { CatApiContext } from "../hooks";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { apiFromKey } from "../catsApi";
+import { apiFromKey } from "../api";
 import { MemoryRouter } from "react-router-dom";
 import { setupServer } from "msw/node";
 

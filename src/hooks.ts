@@ -1,5 +1,5 @@
 import { Favourite, Vote, Cat as ICat } from "./types";
-import { api, makeApiCalls } from "./catsApi";
+import { api, makeApiCalls } from "./api";
 import { groupBy } from "./utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";

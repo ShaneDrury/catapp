@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./components/App";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { apiFromKey, BASE_URL } from "./catsApi";
+import { apiFromKey, BASE_URL } from "./api";
 import { CatApiContext } from "./hooks";
 import { BrowserRouter } from "react-router-dom";
 import { CssBaseline } from "@mui/material";

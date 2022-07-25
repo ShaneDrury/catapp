@@ -1,5 +1,5 @@
 import { generateMockHandlers } from "servo/mocks";
-import { api } from "../catsApi";
+import { api } from "../api";
 
 export const getMockHandlers = (baseUrl: string) => {
   const [
