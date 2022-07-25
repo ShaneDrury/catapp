@@ -19,9 +19,11 @@ type Paths<R> = R extends Path<infer N>
   : // eslint-disable-next-line @typescript-eslint/no-unused-vars
   R extends Method<infer T>
   ? string
-  : R extends Capture<infer S, infer C>
+  : // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  R extends Capture<infer S, infer C>
   ? Paths<S>
-  : R extends Header<infer S, infer H>
+  : // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  R extends Header<infer S, infer H>
   ? Paths<S>
   : R extends QueryParam<infer S>
   ? Paths<S>
@@ -29,6 +31,7 @@ type Paths<R> = R extends Path<infer N>
   ? Paths<S>
   : never;
 
+// TODO: I think this should be Paths it adds
 type AddPath<T> = T extends [infer F, ...infer Rest]
   ? [Path<F>, ...AddPath<Rest>]
   : [];

@@ -1,8 +1,12 @@
 import { Favourite, Vote, Cat as ICat } from "./types";
-import { makeApiCalls } from "./catsApi";
+import { api, makeApiCalls } from "./catsApi";
 import { groupBy } from "./utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
+import { getQueryKeys } from "./servo/queryKeys";
+
+const [[[allImagesQueryKey], [allFavouritesQueryKey], [allVotesQueryKey]]] =
+  getQueryKeys(api);
 
 export const CatApiContext = React.createContext<
   ReturnType<typeof makeApiCalls> | undefined
@@ -34,7 +38,7 @@ const handle200 =
 export const useCats = () => {
   const api = useCatApi();
   return useQuery<ICat[], { message: string }>(
-    ["cats"],
+    allImagesQueryKey,
     handle200(api.getAllImages(100))
   );
 };
@@ -42,7 +46,7 @@ export const useCats = () => {
 export const useFavourites = () => {
   const api = useCatApi();
   return useQuery<Record<string, Favourite>, { message: string }>(
-    ["favourites"],
+    allFavouritesQueryKey,
     async () => {
       const data = await handle200(api.getAllFavourites)();
       return data.reduce<Record<string, Favourite>>(
@@ -56,7 +60,7 @@ export const useFavourites = () => {
 export const useVotes = () => {
   const api = useCatApi();
   return useQuery<Record<string, Vote[]>, { message: string }>(
-    ["votes"],
+    allVotesQueryKey,
     async () => {
       let page = 0;
       const items: Vote[] = [];
@@ -83,6 +87,7 @@ export const useVotes = () => {
 
 export const useUploadCat = () => {
   const api = useCatApi();
+  const queryClient = useQueryClient();
   return useMutation<unknown, { message: string }, File>(
     async (catData: File) => {
       const catPicture = new FormData();
@@ -92,6 +97,11 @@ export const useUploadCat = () => {
         return response.data;
       }
       throw new Error(response.data.message);
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(allImagesQueryKey);
+      },
     }
   );
 };
@@ -107,7 +117,7 @@ export const useVoteDown = (id: string) => {
       })(),
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(["votes"]);
+        queryClient.invalidateQueries(allVotesQueryKey);
       },
     }
   );
@@ -118,7 +128,7 @@ export const useVoteUp = (id: string) => {
   const queryClient = useQueryClient();
   return useMutation(() => api.voteUp({ image_id: id, value: 1 })(), {
     onSuccess: () => {
-      queryClient.invalidateQueries(["votes"]);
+      queryClient.invalidateQueries(allVotesQueryKey);
     },
   });
 };
@@ -136,7 +146,7 @@ export const useFavourite = (id: string, favourite: Favourite) => {
     },
     {
       onSuccess: () => {
-        queryClient.invalidateQueries(["favourites"]);
+        queryClient.invalidateQueries(allFavouritesQueryKey);
       },
     }
   );
